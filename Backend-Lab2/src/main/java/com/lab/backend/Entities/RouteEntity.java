@@ -12,14 +12,13 @@ public class RouteEntity {
     private String route_status;
     private Long id_central;
     private Long id_central_finish;
+    private String trayecto;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
     public Long getId_driver() { return id_driver; }
     public void setId_driver(Long id_driver) { this.id_driver = id_driver; }
-
-
 
     public Time getStart_time() { return start_time; }
     public void setStart_time(Time start_time) { this.start_time = start_time; }
@@ -36,6 +35,8 @@ public class RouteEntity {
     public Long getId_central_finish() { return id_central_finish; }
     public void setId_central_finish(Long id_central_finish) { this.id_central_finish = id_central_finish; }
 
+    public String getTrayecto() { return trayecto; }
+    public void setTrayecto(String trayecto) { this.trayecto = trayecto; }
 
     @Override
     public String toString() {

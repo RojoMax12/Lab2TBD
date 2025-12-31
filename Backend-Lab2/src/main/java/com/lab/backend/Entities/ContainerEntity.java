@@ -3,8 +3,7 @@ package com.lab.backend.Entities;
 public class ContainerEntity {
     private Long id;
     private Long id_waste;
-    private float coord_x;
-    private float coord_y;
+    private String location;
     private float weight;
     private String status;
 
@@ -24,20 +23,12 @@ public class ContainerEntity {
         this.id_waste = id_waste;
     }
 
-    public float getCoord_x() {
-        return coord_x;
+    public String getLocation() {
+        return location;
     }
 
-    public void setCoord_x(float coord_x) {
-        this.coord_x = coord_x;
-    }
-
-    public float getCoord_y() {
-        return coord_y;
-    }
-
-    public void setCoord_y(float coord_y) {
-        this.coord_y = coord_y;
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     public float getWeight() {

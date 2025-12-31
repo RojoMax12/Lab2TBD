@@ -4,8 +4,7 @@ package com.lab.backend.Entities;
 public class CentralEntity {
     private Long id;
     private String name;
-    private float coord_x;
-    private float coord_y;
+    private String location;
 
 
     public Long getId() {
@@ -24,20 +23,12 @@ public class CentralEntity {
         this.name = name;
     }
 
-    public float getCoord_x() {
-        return coord_x;
+    public String getLocation() {
+        return location;
     }
 
-    public void setCoord_x(float coord_x) {
-        this.coord_x = coord_x;
-    }
-
-    public float getCoord_y() {
-        return coord_y;
-    }
-
-    public void setCoord_y(float coord_y) {
-        this.coord_y = coord_y;
+    public void setLocation(String location) {
+        this.location = location;
     }
 }
 

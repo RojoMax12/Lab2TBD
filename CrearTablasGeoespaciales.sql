@@ -1,8 +1,7 @@
-
 -- =====================================
--- EXTENSION POSTGIS
+-- EXTENSIÓN POSTGIS
 -- =====================================
-CREATE EXTENSION postgis; 
+CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- =====================================
 -- TABLA CALLES
