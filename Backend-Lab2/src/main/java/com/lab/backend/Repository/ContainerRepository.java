@@ -26,8 +26,6 @@ public class ContainerRepository {
             connection = sql2o.open();
             Long id = connection.createQuery(sql, true)
                     .addParameter("id_waste", containerEntity.getId_waste())
-                    .addParameter("coord_x", containerEntity.getCoord_x())
-                    .addParameter("coord_y", containerEntity.getCoord_y())
                     .addParameter("weight", containerEntity.getWeight())
                     .addParameter("status", containerEntity.getStatus())
                     .executeUpdate()
@@ -65,8 +63,6 @@ public class ContainerRepository {
         try (Connection connection = sql2o.open()) {
             connection.createQuery(sql)
                     .addParameter("id_waste", containerEntity.getId_waste())
-                    .addParameter("coord_x", containerEntity.getCoord_x())
-                    .addParameter("coord_y", containerEntity.getCoord_y())
                     .addParameter("weight", containerEntity.getWeight())
                     .addParameter("status", containerEntity.getStatus())
                     .addParameter("id", containerEntity.getId())

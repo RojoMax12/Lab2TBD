@@ -24,8 +24,6 @@ public class CentralRepository {
             connection = sql2o.open();
             Long id = connection.createQuery(sql, true)
                     .addParameter("name", central.getName())
-                    .addParameter("coord_x", central.getCoord_x())
-                    .addParameter("coord_y", central.getCoord_y())
                     .executeUpdate()
                     .getKey(Long.class);
             central.setId(id);
@@ -79,8 +77,6 @@ public class CentralRepository {
         try (Connection connection = sql2o.open()) {
             connection.createQuery(sql)
                     .addParameter("name", central.getName())
-                    .addParameter("coord_x", central.getCoord_x())
-                    .addParameter("coord_y", central.getCoord_y())
                     .addParameter("id", central.getId())
                     .addParameter("id", id)
                     .executeUpdate();
