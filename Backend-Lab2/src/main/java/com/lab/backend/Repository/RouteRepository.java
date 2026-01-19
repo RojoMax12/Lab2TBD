@@ -20,10 +20,7 @@ public class RouteRepository {
         this.sql2o = sql2o;
     }
 
-
-
     //CRUD
-
     public RouteEntity CreateRoute(RouteEntity routeEntity) {
         String sql = "INSERT INTO route (id_driver, date_, start_time, end_time, route_status, id_central, id_pick_up_point) " +
                 "VALUES (:id_driver, :date_, :start_time, :end_time, :route_status, :id_central, :id_pick_up_point)";
@@ -395,5 +392,58 @@ public class RouteRepository {
             throw new RuntimeException("Error updating container weights: " + e.getMessage());
         }
     }
+
+    // =====================================================================
+    // CÁLCULO DE KILOMETRAJE (PostGIS Dinámico)
+    // =====================================================================
+    public Double calculateRouteDistance(Long routeId) {
+        // Esta consulta construye la línea de ruta al vuelo:
+        // 1. Central Inicio -> 2. Contenedores (en orden) -> 3. Central Fin
+        // Luego mide la longitud en metros y la convierte a Kilómetros.
+        String sql = """
+            WITH puntos_ruta AS (
+                -- 1. Punto de Inicio (Central de salida)
+                SELECT 0 as orden, c.location 
+                FROM route r 
+                JOIN central c ON r.id_central = c.id 
+                WHERE r.id = :routeId
+                
+                UNION ALL
+                
+                -- 2. Puntos intermedios (Contenedores)
+                -- Usamos rc.id para respetar el orden de inserción/recolección
+                SELECT rc.id as orden, cont.location 
+                FROM route_container rc 
+                JOIN container cont ON rc.id_container = cont.id 
+                WHERE rc.id_route = :routeId
+                
+                UNION ALL
+                
+                -- 3. Punto Final (Central de llegada)
+                SELECT 999999999 as orden, c.location 
+                FROM route r 
+                JOIN central c ON r.id_central_finish = c.id 
+                WHERE r.id = :routeId
+            )
+            SELECT COALESCE(ST_Length(ST_MakeLine(location ORDER BY orden)::geography) / 1000, 0) 
+            FROM puntos_ruta
+        """;
+
+        try (Connection conn = sql2o.open()) {
+            // executeScalar es perfecto para devolver un solo valor (Double)
+            Double distancia = conn.createQuery(sql)
+                    .addParameter("routeId", routeId)
+                    .executeScalar(Double.class);
+
+            // Si por alguna razón devuelve null (ej. ruta sin puntos), retornamos 0.0
+            return distancia != null ? distancia : 0.0;
+
+        } catch (Exception e) {
+            System.err.println("Error al calcular el kilometraje de la ruta " + routeId + ": " + e.getMessage());
+            // En caso de error, devolvemos 0.0 para no romper el frontend
+            return 0.0;
+        }
+    }
+
 
 }

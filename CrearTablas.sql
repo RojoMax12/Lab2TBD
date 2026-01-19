@@ -79,9 +79,9 @@ CREATE TABLE collection_zone (
 -- =====================================
 
 -- Centrales
-INSERT INTO central (name, location) VALUES
-	('Central Norte', ST_SetSRID(ST_MakePoint(10.5, 20.2), 4326)),
-	('Central Sur', ST_SetSRID(ST_MakePoint(30.1, 40.8), 4326));
+INSERT INTO central (name, location) VALUES 
+    ('Central Norte', ST_SetSRID(ST_MakePoint(-70.6693, -33.4489), 4326)), 
+    ('Central Sur', ST_SetSRID(ST_MakePoint(-70.6483, -33.4843), 4326));   
 
 -- Ejemplo de Zona de Recolección (Polígono)
 INSERT INTO collection_zone (name, location) VALUES
@@ -95,16 +95,16 @@ INSERT INTO waste (waste_type) VALUES
 
 -- Contenedores
 INSERT INTO container (id_waste, location, weight, status) VALUES
-	(1, ST_SetSRID(ST_MakePoint(12.3, 22.1), 4326), 50.0, 'Disponible'), -- ID 1
-	(2, ST_SetSRID(ST_MakePoint(14.8, 25.7), 4326), 70.5, 'Disponible'), -- ID 2
-	(3, ST_SetSRID(ST_MakePoint(15.2, 27.0), 4326), 60.0, 'Disponible'), -- ID 3
-	(1, ST_SetSRID(ST_MakePoint(16.0, 28.5), 4326), 55.5, 'Disponible'), -- ID 4
-	(2, ST_SetSRID(ST_MakePoint(17.5, 29.0), 4326), 58.0, 'Disponible'), -- ID 5
-	(3, ST_SetSRID(ST_MakePoint(18.0, 30.0), 4326), 62.0, 'Disponible'), -- ID 6
-	(1, ST_SetSRID(ST_MakePoint(19.0, 31.0), 4326), 59.0, 'Disponible'), -- ID 7
-	(2, ST_SetSRID(ST_MakePoint(20.0, 32.0), 4326), 70.0, 'Disponible'), -- ID 8
-	(3, ST_SetSRID(ST_MakePoint(21.0, 33.0), 4326), 65.0, 'Disponible'), -- ID 9
-	(1, ST_SetSRID(ST_MakePoint(22.0, 34.0), 4326), 68.0, 'Disponible'); -- ID 10
+    (1, ST_SetSRID(ST_MakePoint(-70.6539, -33.4429), 4326), 50.0, 'Disponible'), -- ID 1: Stgo Centro (cerca de La Moneda)
+    (2, ST_SetSRID(ST_MakePoint(-70.6150, -33.4310), 4326), 70.5, 'Disponible'), -- ID 2: Providencia (cerca de Manuel Montt)
+    (3, ST_SetSRID(ST_MakePoint(-70.6914, -33.4550), 4326), 60.0, 'Disponible'), -- ID 3: Estación Central
+    (1, ST_SetSRID(ST_MakePoint(-70.6030, -33.4580), 4326), 55.5, 'Disponible'), -- ID 4: Ñuñoa (Plaza Ñuñoa)
+    (2, ST_SetSRID(ST_MakePoint(-70.6400, -33.4150), 4326), 58.0, 'Disponible'), -- ID 5: Recoleta
+    (3, ST_SetSRID(ST_MakePoint(-70.6520, -33.4900), 4326), 62.0, 'Disponible'), -- ID 6: San Miguel
+    (1, ST_SetSRID(ST_MakePoint(-70.5980, -33.4850), 4326), 59.0, 'Disponible'), -- ID 7: Macul
+    (2, ST_SetSRID(ST_MakePoint(-70.5750, -33.4100), 4326), 70.0, 'Disponible'), -- ID 8: Las Condes (Escuela Militar)
+    (3, ST_SetSRID(ST_MakePoint(-70.5890, -33.5200), 4326), 65.0, 'Disponible'), -- ID 9: La Florida
+    (1, ST_SetSRID(ST_MakePoint(-70.7550, -33.5110), 4326), 68.0, 'Disponible'); -- ID 10: Maipú
 
 -- Conductores
 INSERT INTO driver (name, last_name, email, password, role) VALUES

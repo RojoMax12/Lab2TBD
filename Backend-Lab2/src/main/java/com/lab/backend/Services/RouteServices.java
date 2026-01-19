@@ -84,4 +84,8 @@ public class RouteServices {
         routeRepository.updateContainerWeight(routeId, newWeight);
     }
 
+    public Double getRouteDistance(Long id) {
+        return routeRepository.calculateRouteDistance(id);
+    }
+
 }

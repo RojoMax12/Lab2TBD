@@ -117,4 +117,10 @@ public class RouteController {
         }
     }
 
+    @GetMapping("/{id}/kilometers")
+    public ResponseEntity<Double> getRouteDistance(@PathVariable Long id) {
+        Double km = routeService.getRouteDistance(id);
+        return ResponseEntity.ok(km);
+    }
+
 }
