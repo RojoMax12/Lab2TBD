@@ -54,6 +54,11 @@ public class ContainerServices {
         public List<Map<String, Object>> getContainersOutsideZone() {
             return containerRepository.getContainersOutsideZone();
         }
+
+        // Servicio para obtener el contenedor más cercano a una coordenada
+        public ContainerEntity findNearestContainer(double lon, double lat) {
+            return containerRepository.findNearestContainer(lon, lat);
+        }
     
     }
     

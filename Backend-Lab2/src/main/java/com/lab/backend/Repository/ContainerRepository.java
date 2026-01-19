@@ -251,4 +251,22 @@ public class ContainerRepository {
             throw new RuntimeException("No se pudo obtener la información de contenedores fuera de zona", e);
         }
     }
+
+    // Optimización Espacial: encontrar el contenedor más cercano a un punto dado
+    // Entrada: longitud (lon), latitud (lat)
+    // Salida: ContainerEntity del contenedor más cercano
+    public ContainerEntity findNearestContainer(double lon, double lat) {
+        String sql = "SELECT id, id_waste, ST_AsText(location) as location, weight, status FROM container "
+                + "ORDER BY location <-> ST_SetSRID(ST_MakePoint(:lon, :lat), 4326) LIMIT 1";
+
+        try (Connection connection = sql2o.open()) {
+            return connection.createQuery(sql)
+                    .addParameter("lon", lon)
+                    .addParameter("lat", lat)
+                    .executeAndFetchFirst(ContainerEntity.class);
+        } catch (Exception e) {
+            System.err.println("Error al buscar el contenedor más cercano: " + e.getMessage());
+            throw new RuntimeException("No se pudo obtener el contenedor más cercano", e);
+        }
+    }
 }

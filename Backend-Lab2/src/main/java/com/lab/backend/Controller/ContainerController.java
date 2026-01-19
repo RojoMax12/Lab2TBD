@@ -59,4 +59,10 @@ public class ContainerController {
     public List<Map<String, Object>> getContainersOutsideZone() {
         return containerService.getContainersOutsideZone();
     }
+
+    // Endpoint para obtener el contenedor más cercano a una coordenada (lon, lat)
+    @GetMapping("/nearest")
+    public ContainerEntity getNearestContainer(@RequestParam double lon, @RequestParam double lat) {
+        return containerService.findNearestContainer(lon, lat);
+    }
 }
