@@ -47,10 +47,13 @@ public class ContainerServices {
     }
 
     // ✅ Lógica de servicio para exponer la consulta
-    public List<Map<String, Object>> getContenedoresSinRecoleccionReciente() {
-        return containerRepository.getContenedoresSinRecoleccionReciente();
-    }
-
+        public List<Map<String, Object>> getContenedoresSinRecoleccionReciente() {
+            return containerRepository.getContenedoresSinRecoleccionReciente();
+        }
     
-
-}
+        public List<Map<String, Object>> getContainersOutsideZone() {
+            return containerRepository.getContainersOutsideZone();
+        }
+    
+    }
+    

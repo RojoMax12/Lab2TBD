@@ -32,6 +32,10 @@ export default {
 
     ContainersWithoutCollection() {
         return api.get('/api/containers/NoRecolectados');
+    },
+
+    getContainersOutsideZone() {
+        return api.get('/api/containers/outside-zone');
     }
 
 };

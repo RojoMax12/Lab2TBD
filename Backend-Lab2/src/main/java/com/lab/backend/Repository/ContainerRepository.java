@@ -20,12 +20,13 @@ public class ContainerRepository {
     //CRUD Operations
 
     public ContainerEntity CreateContainer(ContainerEntity containerEntity) {
-        String sql = "INSERT INTO container (id_waste, coord_x, coord_y, weight, status) VALUES (:id_waste, :coord_x, :coord_y, :weight, :status)";
+        String sql = "INSERT INTO container (id_waste, location, weight, status) VALUES (:id_waste, ST_GeomFromText(:location, 4326), :weight, :status)";
         Connection connection = null;
         try {
             connection = sql2o.open();
             Long id = connection.createQuery(sql, true)
                     .addParameter("id_waste", containerEntity.getId_waste())
+                    .addParameter("location", containerEntity.getLocation())
                     .addParameter("weight", containerEntity.getWeight())
                     .addParameter("status", containerEntity.getStatus())
                     .executeUpdate()
@@ -59,10 +60,11 @@ public class ContainerRepository {
     }
 
     public Void UpdateContainer(Long id, ContainerEntity containerEntity) {
-        String sql = "UPDATE container SET id_waste = :id_waste, coord_x = :coord_x, coord_y = :coord_y, weight = :weight, status = :status WHERE id = :id";
+        String sql = "UPDATE container SET id_waste = :id_waste, location = ST_GeomFromText(:location, 4326), weight = :weight, status = :status WHERE id = :id";
         try (Connection connection = sql2o.open()) {
             connection.createQuery(sql)
                     .addParameter("id_waste", containerEntity.getId_waste())
+                    .addParameter("location", containerEntity.getLocation())
                     .addParameter("weight", containerEntity.getWeight())
                     .addParameter("status", containerEntity.getStatus())
                     .addParameter("id", containerEntity.getId())
@@ -75,7 +77,7 @@ public class ContainerRepository {
     }
 
     public List<ContainerEntity> GetAllContainers() {
-        String sql = "SELECT * FROM container";
+        String sql = "SELECT id, id_waste, ST_AsText(location) as location, weight, status FROM container";
         try (Connection connection = sql2o.open()) {
             return connection.createQuery(sql)
                     .executeAndFetch(ContainerEntity.class);
@@ -86,7 +88,7 @@ public class ContainerRepository {
     }
 
     public ContainerEntity GetContainerById(Long id) {
-        String sql = "SELECT * FROM container WHERE id = :id";
+        String sql = "SELECT id, id_waste, ST_AsText(location) as location, weight, status FROM container WHERE id = :id";
         try (Connection connection = sql2o.open()) {
             return connection.createQuery(sql)
                     .addParameter("id", id)
@@ -207,13 +209,12 @@ public class ContainerRepository {
             SELECT
                 c.id AS id_contenedor,
                 w.waste_type AS tipo_residuo,
-                c.coord_x,
-                c.coord_y,
+                ST_AsText(c.location) AS location,
                 COALESCE(TO_CHAR(MAX(p.date_hour), 'YYYY-MM-DD HH24:MI:SS'), 'Nunca recolectado') AS ultima_recoleccion
             FROM container c
             LEFT JOIN waste w ON c.id_waste = w.id
             LEFT JOIN pickup p ON c.id = p.id_container
-            GROUP BY c.id, w.waste_type, c.coord_x, c.coord_y
+            GROUP BY c.id, w.waste_type, c.location
             HAVING
                 MAX(p.date_hour) IS NULL
                 OR MAX(p.date_hour) < (NOW() - INTERVAL '90 days')
@@ -230,4 +231,24 @@ public class ContainerRepository {
         }
     }
 
+    public List<Map<String, Object>> getContainersOutsideZone() {
+        String sql = """
+            SELECT
+                c.id,
+                ST_AsText(c.location) as location
+            FROM container c
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM collection_zone cz
+                WHERE ST_Intersects(c.location, cz.location)
+            );
+        """;
+
+        try (Connection connection = sql2o.open()) {
+            return connection.createQuery(sql).executeAndFetchTable().asList();
+        } catch (Exception e) {
+            System.err.println("Error al obtener contenedores fuera de zona: " + e.getMessage());
+            throw new RuntimeException("No se pudo obtener la información de contenedores fuera de zona", e);
+        }
+    }
 }

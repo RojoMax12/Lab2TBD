@@ -54,4 +54,9 @@ public class ContainerController {
     public List<Map<String, Object>> getContenedoresSinRecoleccionReciente() {
         return containerService.getContenedoresSinRecoleccionReciente();
     }
+
+    @GetMapping("/outside-zone")
+    public List<Map<String, Object>> getContainersOutsideZone() {
+        return containerService.getContainersOutsideZone();
+    }
 }
