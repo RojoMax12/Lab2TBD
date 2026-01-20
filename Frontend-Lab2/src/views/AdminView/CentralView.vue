@@ -4,7 +4,7 @@
   </div>
 
   <div class="container-worker">
-    <h1 class="title">Gestión de Centrales </h1>
+    <h1 class="title">Gestión de Centrales</h1>
 
     <!-- Botón agregar -->
     <div class="actions-top">
@@ -13,15 +13,20 @@
       </button>
     </div>
 
-    <!-- MODAL EMERGENTE -->
+    <!-- MODAL -->
     <div v-if="mostrarModal" class="modal-overlay" @click.self="cerrarModal">
       <div class="modal">
         <h2>{{ editando ? 'Editar Central' : 'Nueva Central' }}</h2>
 
-        <!-- Campos según DriverEntity -->
         <input v-model="nuevaCentral.name" placeholder="Nombre" />
-        <input v-model="nuevaCentral.coord_x" placeholder="Coordenada X" />
-        <input v-model="nuevaCentral.coord_y" placeholder="Coordenada Y" />
+        <input
+          v-model="nuevaCentral.location"
+          placeholder="Ubicación (WKT)"
+        />
+
+        <small class="hint">
+          Ejemplo: POINT(-70.678 -33.456)
+        </small>
 
         <div class="modal-buttons">
           <button class="btn-save" @click="editando ? actualizarCentral() : guardarCentral()">
@@ -36,24 +41,22 @@
     <div class="grid-header">
       <div>ID</div>
       <div>Nombre</div>
-      <div>Coordenada X</div>
-      <div>Coordenada Y</div>
+      <div>Ubicación</div>
       <div>Acciones</div>
     </div>
 
-  <div class = "scrollable-table">
-    <div class="grid-row" v-for="central in centrals" :key="central.id">
-      <div>{{ central.id }}</div>
-      <div>{{ central.name }}</div>
-      <div>{{ central.coord_x }}</div>
-      <div>{{ central.coord_y }}</div>
-      <div class="row-actions">
-        <button class="btn-edit" @click="abrirModalEditar(central)">Editar</button>
-        <button class="btn-delete" @click="eliminarCentral(central.id)">Eliminar</button>
+    <div class="scrollable-table">
+      <div class="grid-row" v-for="central in centrals" :key="central.id">
+        <div>{{ central.id }}</div>
+        <div>{{ central.name }}</div>
+        <div>{{ formatLocation(central.location) }}</div>
+        <div class="row-actions">
+          <button class="btn-edit" @click="abrirModalEditar(central)">Editar</button>
+          <button class="btn-delete" @click="eliminarCentral(central.id)">Eliminar</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 </template>
 
 <script>
@@ -63,114 +66,105 @@ import CentralServices from '@/services/centralservices'
 
 export default {
   name: 'CentralsView',
-  components: {
-    HomeAdminView
-  },
+  components: { HomeAdminView },
+
   setup() {
     const mostrarModal = ref(false)
     const editando = ref(false)
     const centrals = ref([])
-    const nuevaCentral = ref({
-      name: '',
-      coord_x: '',
-      coord_y: ''
-    })
-    const saving = ref(false)
-    const errorMsg = ref('')
 
-    // Cerrar modal
+    const nuevaCentral = ref({
+      id: null,
+      name: '',
+      location: ''
+    })
+
     const cerrarModal = () => {
       mostrarModal.value = false
-      errorMsg.value = ''
     }
 
-    // Obtener las centrales desde el backend
     const obtenerCentrals = () => {
       CentralServices.getAllCentrals()
-        .then(response => {
-          centrals.value = response.data
+        .then(res => {
+          centrals.value = res.data || res
         })
-        .catch(error => {
-          console.error('Error al obtener centrales:', error)
+        .catch(err => {
+          console.error('Error al obtener centrales:', err)
         })
     }
 
     onMounted(obtenerCentrals)
-    // Abrir modal para agregar un nuevo administrador
+
     const abrirModalNuevo = () => {
-      mostrarModal.value = true
       editando.value = false
-      nuevaCentral.value = {  // Resetea los valores del administrador
+      mostrarModal.value = true
+      nuevaCentral.value = {
+        id: null,
         name: '',
-        coord_x: '',
-        coord_y: ''
+        location: ''
       }
     }
 
-    // Abrir modal para editar un administrador
     const abrirModalEditar = (central) => {
+      editando.value = true
       mostrarModal.value = true
-      editando.value = true  // Establece que estamos editando
-      nuevaCentral.value = { ...central }  // Carga los datos del administrador seleccionado
+      nuevaCentral.value = { ...central }
     }
 
-    // Guardar un nuevo administrador
     const guardarCentral = () => {
       CentralServices.createCentral(nuevaCentral.value)
         .then(() => {
           obtenerCentrals()
           cerrarModal()
         })
-        .catch((error) => {
-          console.error('Error al guardar administrador:', error)
-          errorMsg.value = 'Error al guardar administrador. Inténtalo de nuevo.'
-        })
-        .finally(() => {
-          saving.value = false
-        })
+        .catch(err => console.error('Error al crear central:', err))
     }
 
-    // Actualizar un administrador existente
     const actualizarCentral = () => {
-      saving.value = true
-      CentralServices.updateCentral(nuevaCentral.value.id, nuevaCentral.value)
+      CentralServices.updateCentral(
+        nuevaCentral.value.id,
+        nuevaCentral.value
+      )
         .then(() => {
           obtenerCentrals()
           cerrarModal()
         })
-        .catch((error) => {
-          console.error('Error al actualizar central:', error)
-          errorMsg.value = 'Error al actualizar central. Inténtalo de nuevo.'
-        })
-        .finally(() => {
-          saving.value = false
-        })
+        .catch(err => console.error('Error al actualizar central:', err))
     }
 
-    // Eliminar central
     const eliminarCentral = (id) => {
+      if (!confirm('¿Eliminar esta central?')) return
+
       CentralServices.deleteCentral(id)
-        .then(() => {
-          obtenerCentrals()
-        })
-        .catch((error) => {
-          console.error('Error al eliminar central:', error)
-        })
+        .then(obtenerCentrals)
+        .catch(err => console.error('Error al eliminar central:', err))
     }
+
+    // Función para dar formato a coordenadas
+    const formatLocation = (wkt) => {
+      if (!wkt) return "Sin coordenadas";
+      
+      // Usamos una expresión regular para extraer los números
+      const match = wkt.match(/\(([^)]+)\)/);
+      if (match) {
+        const [lon, lat] = match[1].split(' ');
+        return `X= ${lon} ; Y= ${lat}`;
+      }
+      return wkt;
+    };
 
     return {
       mostrarModal,
       editando,
-      saving,
-      errorMsg,
       centrals,
       nuevaCentral,
-      cerrarModal,
       abrirModalNuevo,
+      abrirModalEditar,
       guardarCentral,
       actualizarCentral,
       eliminarCentral,
-      abrirModalEditar
+      cerrarModal,
+      formatLocation
     }
   }
 }

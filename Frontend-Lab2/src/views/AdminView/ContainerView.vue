@@ -30,13 +30,12 @@
         </div>
 
         <div class="form-group">
-          <label for="coord-x">Coordenada X</label>
-          <input v-model="nuevoContenedor.coord_x" type="number" id="coord-x" placeholder="Ej: -33.456" />
-        </div>
-
-        <div class="form-group">
-          <label for="coord-y">Coordenada Y</label>
-          <input v-model="nuevoContenedor.coord_y" type="number" id="coord-y" placeholder="Ej: -70.678" />
+          <label for="location">Ubicación (WKT)</label>
+          <input
+            v-model="nuevoContenedor.location"
+            id="location"
+            placeholder="POINT(-70.678 -33.456)"
+          />
         </div>
 
         <div class="form-group">
@@ -102,8 +101,8 @@
 
     <div class="grid-header">
       <div>ID</div>
-      <div>Tipo de Residuo</div> <div>Coord X</div>
-      <div>Coord Y</div>
+      <div>Tipo de Residuo</div>
+      <div>Ubicación</div>
       <div>Peso</div>
       <div>Estado</div>
       <div>Acciones</div>
@@ -117,8 +116,7 @@
       >
         <div>{{ contenedor.id }}</div>
         <div>{{ getWasteName(contenedor.id_waste) }}</div> 
-        <div>{{ contenedor.coord_x }}</div>
-        <div>{{ contenedor.coord_y }}</div>
+        <div>{{ formatLocation(contenedor.location) }}</div>
         <div>{{ contenedor.weight }}</div>
         <div>{{ contenedor.status }}</div>
         <div class="row-actions">
@@ -134,8 +132,7 @@
 
     <div class="grid-header-norec">
       <div>ID</div>
-      <div>Coord X</div>
-      <div>Coord Y</div>
+      <div>Ubicación</div>
       <div>Última Recolección</div> <div>Tipo de residuo</div>
     </div>
 
@@ -146,8 +143,7 @@
         class="grid-row-norec"
       >
         <div>{{ contenedorsinrecolectar.id_contenedor }}</div>
-        <div>{{ contenedorsinrecolectar.coord_x }}</div>
-        <div>{{ contenedorsinrecolectar.coord_y }}</div>
+        <div>{{ formatLocation(contenedorsinrecolectar.location) }}</div>
         <div>{{ contenedorsinrecolectar.ultima_recoleccion }}</div>
         <div>{{ contenedorsinrecolectar.tipo_residuo }}</div>
       </div>
@@ -236,13 +232,13 @@ export default {
     const wasteactual = ref(null) 
 
     const nuevoContenedor = ref({
-      id: null,
-      id_waste: '',
-      coord_x: '',
-      coord_y: '',
-      weight: '',
-      status: ''
-    })
+      id: null,
+      id_waste: '',
+      location: '',
+      weight: '',
+      status: ''
+    })
+
 
     const selectedRoute = ref('')
     const nuevoPeso = ref('')
@@ -346,7 +342,7 @@ export default {
     // Obtener tipos de residuos (CORREGIDO: llama a getAllWastes)
     const obtenerTiposDeWaste = async () => {
     try {
-        const response = await wasteService.getAllWastes(); // CORRECCIÓN AQUÍ
+        const response = await wasteService.getAllWastes();
         
         wasteTypes.value = response.data || response;
     } catch (error) {
@@ -368,6 +364,18 @@ export default {
         }
     }
 
+    // Función para dar formato a coordenadas
+    const formatLocation = (wkt) => {
+      if (!wkt) return "Sin coordenadas";
+      
+      // Usamos una expresión regular para extraer los números
+      const match = wkt.match(/\(([^)]+)\)/);
+      if (match) {
+        const [lon, lat] = match[1].split(' ');
+        return `X= ${lon} ; Y= ${lat}`;
+      }
+      return wkt;
+    };
 
     // === Hooks ===
     watch(selectedRoute, (newRouteId) => {
@@ -385,17 +393,16 @@ export default {
 
     // === MODAL NUEVO / EDITAR ===
     const abrirModalNuevo = () => {
-      editando.value = false
-      mostrarModal.value = true
-      nuevoContenedor.value = {
-        id: null,
-        id_waste: '',
-        coord_x: '',
-        coord_y: '',
-        weight: '',
-        status: ''
-      }
-    }
+      editando.value = false
+      mostrarModal.value = true
+      nuevoContenedor.value = {
+        id: null,
+        id_waste: '',
+        location: '',
+        weight: '',
+        status: ''
+      }
+    }
 
     const abrirModalEditar = (contenedor) => {
       editando.value = true
@@ -404,26 +411,27 @@ export default {
     }
 
     const guardarContenedor = async () => {
-        try {
-            await containerServices.createContainer(nuevoContenedor.value)
-            obtenerContenedores()
-            cerrarModal()
-        } catch (error) {
-            console.error("Error al crear contenedor:", error)
-            alert("Error al crear contenedor. Revisa la consola.")
-        }
-    }
+      try {
+        await containerServices.createContainer(nuevoContenedor.value)
+        await obtenerContenedores()
+        cerrarModal()
+      } catch (e) {
+        console.error(e)
+      }
+    }
 
-    const actualizarContenedor = async () => {
-        try {
-            await containerServices.updateContainer(nuevoContenedor.value.id, nuevoContenedor.value)
-            obtenerContenedores()
-            cerrarModal()
-        } catch (error) {
-            console.error("Error al actualizar contenedor:", error)
-            alert("Error al actualizar contenedor. Revisa la consola.")
-        }
-    }
+    const actualizarContenedor = async () => {
+      try {
+        await containerServices.updateContainer(
+          nuevoContenedor.value.id,
+          nuevoContenedor.value
+        )
+        await obtenerContenedores()
+        cerrarModal()
+      } catch (e) {
+        console.error(e)
+      }
+    }
 
     const eliminarContenedor = async (id) => {
       if (confirm('¿Seguro que deseas eliminar este contenedor?')) {
@@ -504,7 +512,8 @@ export default {
       wasteTypes,
       wasteactual,
       fetchWasteById,
-      getWasteName // Expone la función de mapeo al template
+      getWasteName, // Expone la función de mapeo al template
+      formatLocation
     }
   }
 }
@@ -876,7 +885,5 @@ export default {
   font-style: italic;
   margin-top: 8px;
 }
-
-
 
 </style>
