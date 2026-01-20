@@ -22,89 +22,149 @@ public class RouteRepository {
 
     //CRUD
     public RouteEntity CreateRoute(RouteEntity routeEntity) {
-        String sql = "INSERT INTO route (id_driver, date_, start_time, end_time, route_status, id_central, id_pick_up_point) " +
-                "VALUES (:id_driver, :date_, :start_time, :end_time, :route_status, :id_central, :id_pick_up_point)";
+        String sql = """
+        INSERT INTO route (
+            id_driver, date_, start_time, end_time,
+            route_status, id_central, id_central_finish, trayecto
+        )
+        VALUES (
+            :id_driver, :date_, :start_time, :end_time,
+            :route_status, :id_central, :id_central_finish,
+            ST_GeomFromText(:trayecto, 4326)
+        )
+    """;
+
         try (Connection conn = sql2o.open()) {
             Long id = conn.createQuery(sql, true)
                     .bind(routeEntity)
                     .executeUpdate()
                     .getKey(Long.class);
+
             routeEntity.setId(id);
             return routeEntity;
+
         } catch (Exception e) {
-            System.err.println("Error al crear la ruta: " + e.getMessage());
             throw new RuntimeException("No se pudo crear la ruta", e);
         }
     }
+
     public RouteEntity getRouteById(Long id) {
-        String sql = "SELECT * FROM route WHERE id = :id";
+        String sql = """
+        SELECT
+            id,
+            id_driver,
+            date_,
+            start_time,
+            end_time,
+            route_status,
+            id_central,
+            id_central_finish,
+            ST_AsText(trayecto) AS trayecto
+        FROM route
+        WHERE id = :id
+    """;
+
         try (Connection connection = sql2o.open()) {
             return connection.createQuery(sql)
                     .addParameter("id", id)
                     .executeAndFetchFirst(RouteEntity.class);
 
-        } catch (Sql2oException e){
-            System.err.println("Error al consultar la ruta: ");
+        } catch (Sql2oException e) {
             throw new RuntimeException("No se pudo consultar la ruta", e);
         }
     }
 
     public RouteEntity getRouteByIdDriverAndStatus(Long idDriver, String status) {
-        String sql = "SELECT * FROM route WHERE id_driver = :id_driver AND route_status = :status";
+        String sql = """
+        SELECT
+            id,
+            id_driver,
+            date_,
+            start_time,
+            end_time,
+            route_status,
+            id_central,
+            id_central_finish,
+            ST_AsText(trayecto) AS trayecto
+        FROM route
+        WHERE id_driver = :id_driver
+          AND route_status = :status
+    """;
+
         try (Connection connection = sql2o.open()) {
-            RouteEntity route = connection.createQuery(sql)
+            return connection.createQuery(sql)
                     .addParameter("id_driver", idDriver)
                     .addParameter("status", status)
                     .executeAndFetchFirst(RouteEntity.class);
-            if (route == null) {
-                throw new RuntimeException("No se encontró ninguna ruta para el conductor con id: " + idDriver + " y estado: " + status);
-            }
-            System.out.println(route.toString());
-            return route;
-        } catch (Sql2oException e){
-            System.err.println("Error al consultar la ruta: ");
-            throw new RuntimeException("No se pudo consultar la ruta", e);
         }
     }
 
-
     public List<RouteEntity> getAllRoutes() {
-        String sql = "SELECT * FROM route";
+        String sql = """
+        SELECT
+            id,
+            id_driver,
+            date_,
+            start_time,
+            end_time,
+            route_status,
+            id_central,
+            id_central_finish,
+            ST_AsText(trayecto) AS trayecto
+        FROM route
+    """;
+
         try (Connection conn = sql2o.open()) {
             return conn.createQuery(sql)
                     .executeAndFetch(RouteEntity.class);
-        } catch (Exception e) {
-            System.err.println("Error al obtener las rutas: " + e.getMessage());
-            throw new RuntimeException("No se pudieron obtener las rutas", e);
         }
     }
 
     public List<RouteEntity> getAllRoutesByDriverPending(Long id_driver) {
-        // Corregimos el SQL para que la condición de "route_status" esté bien formada.
-        String sql = "SELECT * FROM route WHERE id_driver = :id_driver AND route_status = :status";
+        String sql = """
+        SELECT
+            id,
+            id_driver,
+            date_,
+            start_time,
+            end_time,
+            route_status,
+            id_central,
+            id_central_finish,
+            ST_AsText(trayecto) AS trayecto
+        FROM route
+        WHERE id_driver = :id_driver
+          AND route_status = 'Pendiente'
+    """;
+
         try (Connection conn = sql2o.open()) {
-            // Usamos un parámetro con nombre "status" y pasamos su valor.
             return conn.createQuery(sql)
                     .addParameter("id_driver", id_driver)
-                    .addParameter("status", "Pendiente") // Asignamos el valor "pendiente" al parámetro
                     .executeAndFetch(RouteEntity.class);
-        } catch (Exception e) {
-            System.err.println("Error al obtener las rutas: " + e.getMessage());
-            throw new RuntimeException("No se pudieron obtener las rutas", e);
         }
     }
 
     public List<RouteEntity> getAllRoutesByDriverFinish(Long id_driver) {
-        String sql = "SELECT * FROM route WHERE id_driver = :id_driver AND route_status = :route_status";  // Usar parámetros
+        String sql = """
+        SELECT
+            id,
+            id_driver,
+            date_,
+            start_time,
+            end_time,
+            route_status,
+            id_central,
+            id_central_finish,
+            ST_AsText(trayecto) AS trayecto
+        FROM route
+        WHERE id_driver = :id_driver
+          AND route_status = 'Finalizada'
+    """;
 
         try (Connection conn = sql2o.open()) {
             return conn.createQuery(sql)
-                    .addParameter("id_driver", id_driver)  // Pasar el id del conductor
-                    .addParameter("route_status", "Finalizada")  // Pasar el valor de estado
-                    .executeAndFetch(RouteEntity.class);  // Ejecutar la consulta y mapear los resultados
-        } catch (Exception e) {
-            System.err.println("Error al obtener las rutas: " + e.getMessage());
-            throw new RuntimeException("No se pudieron obtener las rutas", e);
+                    .addParameter("id_driver", id_driver)
+                    .executeAndFetch(RouteEntity.class);
         }
     }
 

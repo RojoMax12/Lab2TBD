@@ -123,7 +123,14 @@
             <td>{{ getNameCentralById(r.id_central_finish) }}</td>
             <td>{{ r.contenedores.join(', ') }}</td>
             <td>
-              <button class="btn-delete" @click="eliminarRuta(r.id)">Eliminar</button>
+              <div class="row-actions">
+                <button class="btn-view" @click="verRuta(r)">
+                  Ver Ruta
+                </button>
+                <button class="btn-delete" @click="eliminarRuta(r.id)">
+                  Eliminar
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -142,35 +149,40 @@
     </button>
 
     <div class="inefficient-box">
-  <table class="inefficient-table">
-    <thead>
-      <tr>
-        <th>ID Ruta</th>
-        <th>Contenedores</th>
-        <th>Duración (horas)</th>
-      </tr>
-    </thead>
+      <table class="inefficient-table">
+        <thead>
+          <tr>
+            <th>ID Ruta</th>
+            <th>Contenedores</th>
+            <th>Duración (horas)</th>
+          </tr>
+        </thead>
 
-    <!-- Si hay datos -->
-    <tbody v-if="rutasIneficientes.length" class="Data-text">
-      <tr v-for="r in rutasIneficientes" :key="r.route_id">
-        <td>{{ r.route_id }}</td>
-        <td>{{ r.container_count }}</td>
-        <td>{{ r.duration_hours }}</td>
-      </tr>
-    </tbody>
+        <!-- Si hay datos -->
+        <tbody v-if="rutasIneficientes.length" class="Data-text">
+          <tr v-for="r in rutasIneficientes" :key="r.route_id">
+            <td>{{ r.route_id }}</td>
+            <td>{{ r.container_count }}</td>
+            <td>{{ r.duration_hours }}</td>
+          </tr>
+        </tbody>
 
-    <!-- Si NO hay datos -->
-    <tbody v-else>
-      <tr>
-        <td colspan="3" class="no-data">No hay rutas ineficientes cargadas aún.</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
+        <!-- Si NO hay datos -->
+        <tbody v-else>
+          <tr>
+            <td colspan="3" class="no-data">No hay rutas ineficientes cargadas aún.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
+  <!-- ============================
+        MAPA PARA VER RUTA
+  ============================ -->
+  <div v-if="mostrarMapa" class="map-container">
+    <div id="map" style="height: 500px; width: 100%; border: 1px solid #ccc;"></div>
+  </div>
 
 </template>
 
@@ -179,6 +191,7 @@
 <script setup>
 import { ref } from 'vue'
 import { onMounted } from 'vue'
+import { nextTick } from 'vue'
 import HomeAdminView from '@/components/Admin/HeaderAdmin.vue'
 // Use direct fetch calls instead of a routeServices wrapper to keep this component self-contained
 import driverServices from '@/services/driverservices'
@@ -186,6 +199,10 @@ import centralServices from '@/services/centralservices'
 import containerServices from '@/services/containerservices'
 import routeServices from '@/services/routeservices'
 import routeContainerServices from '@/services/route_containerservices'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+
+
 /* MODAL */
 const mostrarModal = ref(false)
 const contenedores = ref([])
@@ -210,6 +227,65 @@ const nuevaRuta = ref({
 })
 
 const contenedoresSeleccionados = ref([])
+
+// MAPA
+
+function parseWKTLineString(wkt) {
+  if (!wkt || !wkt.startsWith('LINESTRING')) return []
+
+  return wkt
+    .replace('LINESTRING(', '')
+    .replace(')', '')
+    .split(',')
+    .map(pair => {
+      const [lng, lat] = pair.trim().split(' ').map(Number)
+      return [lat, lng] // Leaflet usa [lat, lng]
+    })
+}
+
+const mostrarMapa = ref(false)
+let map = null
+let routeLayer = null
+
+function initMap() {
+  map = L.map('map').setView([-33.45, -70.66], 12)
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map)
+
+  routeLayer = L.layerGroup().addTo(map)
+}
+
+function verRuta(ruta) {
+  if (!ruta.trayecto) {
+    alert('La ruta no tiene trayecto')
+    return
+  }
+
+  const coords = parseWKTLineString(ruta.trayecto)
+  if (!coords.length) {
+    alert('Trayecto inválido')
+    return
+  }
+
+  // Mostrar el div del mapa
+  mostrarMapa.value = true
+
+  // Esperar a que Vue renderice el div #map
+  nextTick(() => {
+    // Inicializar Leaflet solo si no está inicializado
+    if (!map) {
+      initMap()
+    } else {
+      routeLayer.clearLayers()
+    }
+
+    // Dibujar la ruta
+    const polyline = L.polyline(coords, { color: 'blue', weight: 5 }).addTo(routeLayer)
+    map.fitBounds(polyline.getBounds())
+  })
+}
 
 async function eliminarRuta(id) {
   if (!id) {
@@ -241,7 +317,6 @@ function guardarRuta() {
     return
   }
 
-
   // Construir el payload para enviar al backend
   const payload = {
     contenedores: contenedoresSeleccionados.value,
@@ -253,11 +328,9 @@ function guardarRuta() {
     endTime: nuevaRuta.value.end_time
   };
 
-
   // Llamar al servicio para crear la ruta
   routeServices.createroute(payload)
     .then(res => {
-
 
       // Refrescamos la lista de rutas planificadas
       fetchRutas();
@@ -299,7 +372,7 @@ function formatTimeToAMPM(timeStr) {
 
 async function fetchRutas() {
   try {
-    // 1️⃣ Obtener todas las rutas planificadas
+    // Obtener todas las rutas planificadas
     const res = await routeServices.getAllRoutes();
     let rutasData = Array.isArray(res.data) ? res.data : res;
 
@@ -320,7 +393,7 @@ async function fetchRutas() {
       return String(startB).localeCompare(String(startA))
     })
 
-    // 2️⃣ Para cada ruta, obtener sus contenedores asociados
+    // Para cada ruta, obtener sus contenedores asociados
     const rutasConContenedores = await Promise.all(
       rutasData.map(async (ruta) => {
         try {
@@ -337,7 +410,7 @@ async function fetchRutas() {
       })
     );
 
-    // 3️⃣ Normalizar horas a formato AM/PM y guardar el resultado en el estado de Vue
+    // Normalizar horas a formato AM/PM y guardar el resultado en el estado de Vue
     const rutasFormateadas = rutasConContenedores.map(r => {
       // Normalizar nombres de campos (start/end pueden venir como start_time o startTime)
       const rawStart = r.start_time || r.startTime || r.start || ''
@@ -384,8 +457,6 @@ function getNameCentralById(id) {
   if (found) return found.name || found.location || ''
   return String(id)
 }
-
-
 
 async function fetchDrivers() {
   try {
@@ -442,8 +513,6 @@ async function fetchCentralesId(idcentral, route) {
   }
 }
 
-
-
 async function fetchRutasIneficientes() {
   try {
     const res = await routeServices.inefficientRoutes()
@@ -460,7 +529,6 @@ onMounted(() => {
   fetchContenedores()
   fetchCentrales()
 })
-
 
 </script>
 
@@ -697,5 +765,37 @@ onMounted(() => {
   border-bottom-right-radius: 12px;
 }
 
+.map-container {
+  margin-top: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-view,
+.btn-delete {
+  position: static;
+}
+
+.btn-view {
+  background-color: #5f6949;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-view:hover {
+  background-color: #4c553a;
+}
 
 </style>
