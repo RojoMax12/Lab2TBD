@@ -1,4 +1,5 @@
 package com.lab.backend.Repository;
+import com.lab.backend.DTO.ContainerDTO;
 import com.lab.backend.Entities.RouteEntity;
 import org.springframework.stereotype.Repository;
 
@@ -23,18 +24,19 @@ public class RouteRepository {
     //CRUD
     public RouteEntity CreateRoute(RouteEntity routeEntity) {
         String sql = """
-        INSERT INTO route (
-            id_driver, date_, start_time, end_time,
-            route_status, id_central, id_central_finish, trayecto
-        )
-        VALUES (
-            :id_driver, :date_, :start_time, :end_time,
-            :route_status, :id_central, :id_central_finish,
-            ST_GeomFromText(:trayecto, 4326)
-        )
+    INSERT INTO route (
+        id_driver, date_, start_time, end_time,
+        route_status, id_central, id_central_finish, trayecto
+    )
+    VALUES (
+        :id_driver, :date_, :start_time, :end_time,
+        :route_status, :id_central, :id_central_finish,
+        ST_GeomFromText(:trayecto, 4326)
+    )
     """;
 
         try (Connection conn = sql2o.open()) {
+            // executeUpdate().getKey() devuelve el ID generado por el SERIAL de Postgres
             Long id = conn.createQuery(sql, true)
                     .bind(routeEntity)
                     .executeUpdate()
@@ -42,9 +44,61 @@ public class RouteRepository {
 
             routeEntity.setId(id);
             return routeEntity;
+        } catch (Exception e) {
+            throw new RuntimeException("Error al insertar ruta nativa: " + e.getMessage());
+        }
+    }
+
+    public void linkContainersToRoute(Long routeId, List<ContainerDTO> contenedores) {
+        String sqlInsert = "INSERT INTO route_container (id_route, id_container) VALUES (:id_route, :id_container)";
+        String sqlUpdate = "UPDATE container SET status = 'En Ruta' WHERE id = :id_container";
+
+        try (Connection conn = sql2o.open()) {
+            for (ContainerDTO c : contenedores) {
+                // Insertar relación en route_container
+                conn.createQuery(sqlInsert)
+                        .addParameter("id_route", routeId)
+                        .addParameter("id_container", c.getId())
+                        .executeUpdate();
+
+                // Actualizar el estado en la tabla container
+                conn.createQuery(sqlUpdate)
+                        .addParameter("id_container", c.getId())
+                        .executeUpdate();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error al vincular contenedores a la ruta: " + e.getMessage(), e);
+        }
+    }
+
+    public void deleteRouteAndReleaseContainers(Long idRoute) {
+        // 1. SQL para actualizar el estado de los contenedores vinculados a esta ruta
+        String sqlUpdateStatus = """
+        UPDATE container 
+        SET status = 'Disponible' 
+        WHERE id IN (
+            SELECT id_container FROM route_container WHERE id_route = :id_route
+        )
+    """;
+
+        // 2. SQL para eliminar la ruta (el CASCADE se encarga de route_container)
+        String sqlDeleteRoute = "DELETE FROM route WHERE id = :id_route";
+
+        try (Connection conn = sql2o.open()) {
+            // Ejecutamos ambos en la misma conexión
+            // Primero liberamos los contenedores
+            conn.createQuery(sqlUpdateStatus)
+                    .addParameter("id_route", idRoute)
+                    .executeUpdate();
+
+            // Luego eliminamos la ruta
+            conn.createQuery(sqlDeleteRoute)
+                    .addParameter("id_route", idRoute)
+                    .executeUpdate();
 
         } catch (Exception e) {
-            throw new RuntimeException("No se pudo crear la ruta", e);
+            System.err.println("Error al eliminar ruta y liberar contenedores: " + e.getMessage());
+            throw new RuntimeException("No se pudo eliminar la ruta");
         }
     }
 

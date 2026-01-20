@@ -287,21 +287,15 @@ function verRuta(ruta) {
   })
 }
 
-async function eliminarRuta(id) {
-  if (!id) {
-    alert('ID de ruta inválido')
-    return
-  }
-  if (!confirm('¿Confirma que desea eliminar la planificación de ruta #' + id + '?')) {
-    return
-  }
-  try {
-    await routeServices.deleteRoute(id)
-    alert('Ruta eliminada correctamente')
-    fetchRutas()
-  } catch (e) {
-    console.error('Error deleting route:', e)
-    alert('Error al eliminar la ruta: ' + (e.message || e))
+function eliminarRuta(id) {
+  if (confirm("¿Estás seguro de eliminar esta ruta? Los contenedores volverán a estar disponibles.")) {
+    routeServices.deleteRoute(id)
+      .then(() => {
+        fetchRutas();         // Refresca la tabla de rutas
+        fetchContenedores();  // ¡Importante! Los contenedores liberados reaparecen aquí
+        alert("Ruta eliminada y contenedores liberados.");
+      })
+      .catch(err => console.error(err));
   }
 }
 
@@ -309,51 +303,65 @@ function cerrarModal() {
   mostrarModal.value = false
 }
 
+// Función para extraer coordenadas de un WKT POINT
+function parseWKTPoint(wkt) {
+  if (!wkt || !wkt.startsWith('POINT')) return { lat: null, lng: null };
+  const coords = wkt.replace('POINT(', '').replace(')', '').split(' ');
+  return {
+    lng: parseFloat(coords[0]),
+    lat: parseFloat(coords[1])
+  };
+}
+
 // Función para guardar una nueva ruta
 function guardarRuta() {
-  // Primero, asegurémonos de que el formulario esté completo y que se hayan seleccionado contenedores
   if (!nuevaRuta.value.id_driver || contenedoresSeleccionados.value.length === 0) {
-    alert("Debes completar el formulario y seleccionar contenedores.")
-    return
+    alert("Debes completar el formulario y seleccionar contenedores.");
+    return;
   }
 
-  // Construir el payload para enviar al backend
+  // Usamos filter para asegurar que solo procesamos contenedores que aún existen en la lista local
+  const objetosContenedoresCompletos = contenedoresSeleccionados.value
+    .map(idSel => contenedores.value.find(c => c.id === idSel))
+    .filter(co => co !== undefined) // <--- Evita el error "co is undefined"
+    .map(co => {
+        const coords = parseWKTPoint(co.location);
+        return {
+          id: co.id,
+          latitude: coords.lat,
+          longitude: coords.lng
+        };
+    });
+
+  if (objetosContenedoresCompletos.length < 1) {
+    alert("Error: Los contenedores seleccionados ya no están disponibles.");
+    return;
+  }
+
   const payload = {
-    contenedores: contenedoresSeleccionados.value,
+    contenedores: objetosContenedoresCompletos,
     idDriver: Number(nuevaRuta.value.id_driver),
     idCentral: Number(nuevaRuta.value.id_central),
     idCentralFinish: Number(nuevaRuta.value.id_central_end),
-    date: nuevaRuta.value.date_,
+    date: nuevaRuta.value.date, 
     startTime: nuevaRuta.value.start_time,
     endTime: nuevaRuta.value.end_time
   };
 
-  // Llamar al servicio para crear la ruta
   routeServices.createroute(payload)
     .then(res => {
-
-      // Refrescamos la lista de rutas planificadas
       fetchRutas();
-
+      fetchContenedores(); // Actualiza la disponibilidad
       alert('Ruta planificada exitosamente');
+      
+      // LIMPIEZA DE ESTADO: Evita que queden IDs residuales
+      contenedoresSeleccionados.value = [];
+      mostrarModal.value = false;
     })
     .catch(err => {
-      console.error('Error creando ruta:', err);
-      alert('Error al planificar ruta: ' + (err.message || err));
+      console.error('Error:', err);
+      alert('Error al planificar ruta');
     });
-
-  // Limpiar el formulario después de guardarlo
-  nuevaRuta.value = {
-    id_driver: "",
-    date: "",
-    start_time: "",
-    end_time: "",
-    id_central: "",
-    id_central_end: "",
-  }
-
-  contenedoresSeleccionados.value = []
-  mostrarModal.value = false
 }
 
 // Helper: convertir cadena de hora (HH:mm o HH:mm:ss) a formato 12h AM/PM

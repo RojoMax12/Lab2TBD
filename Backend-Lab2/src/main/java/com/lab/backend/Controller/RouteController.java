@@ -1,11 +1,12 @@
 package com.lab.backend.Controller;
 
+import com.lab.backend.DTO.ContainerDTO;
+import com.lab.backend.DTO.RouteRequestDTO;
 import com.lab.backend.Entities.RouteEntity;
 import com.lab.backend.Services.RouteServices;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.Time;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
@@ -21,12 +22,29 @@ public class RouteController {
     }
 
     public static class PlanificarRutaRequest {
-        public List<Long> contenedores;
+        public List<ContainerDTO> contenedores;
         public Long idDriver;
         public Long idCentral;
         public Long idCentralFinish;
-        public LocalTime startTime; // Hora de inicio
-        public LocalTime   endTime;   // Hora de fin
+        public String date;
+        public LocalTime startTime;
+        public LocalTime endTime;
+    }
+
+    @PostMapping("/planroute")
+    public ResponseEntity<?> planificarRuta(@RequestBody RouteRequestDTO request) {
+        try {
+            // Validación de seguridad para PostGIS
+            if (request.getContenedores() == null || request.getContenedores().size() < 2) {
+                return ResponseEntity.badRequest().body("Se requieren al menos 2 contenedores.");
+            }
+
+            RouteEntity nuevaRuta = routeService.createRoute(request);
+
+            return ResponseEntity.ok(nuevaRuta);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
     }
 
     @GetMapping("/")
@@ -68,23 +86,6 @@ public class RouteController {
     @DeleteMapping("/{id}")
     public void deleteRoute(@PathVariable Long id){
         routeService.deleteRoute(id);
-    }
-
-    @PostMapping("/planroute")
-    public String planificarRuta(@RequestBody PlanificarRutaRequest request) {
-        try {
-            routeService.planificarRuta(
-                    request.contenedores,
-                    request.idDriver,
-                    request.idCentral,
-                    request.idCentralFinish,
-                    request.startTime,  // Recibir start_time
-                    request.endTime     // Recibir end_time
-            );
-            return "Ruta planificada exitosamente";
-        } catch (Exception e) {
-            return "Error: " + e.getMessage();
-        }
     }
 
     @GetMapping("/inefficient-routes")
