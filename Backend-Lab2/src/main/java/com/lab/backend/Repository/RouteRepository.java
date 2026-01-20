@@ -21,33 +21,55 @@ public class RouteRepository {
         this.sql2o = sql2o;
     }
 
-    //CRUD
-    public RouteEntity CreateRoute(RouteEntity routeEntity) {
+    // Consulta SQL N°1 - Lab. 2: Generación de Geometría de Ruta
+    // Crea una nueva ruta generando automáticamente la geometría del trayecto
+    // uniendo los puntos de los contenedores en orden de visita mediante ST_MakeLine.
+    // Entrada: RouteEntity con metadatos y List<String> con puntos en formato WKT "POINT(lng lat)".
+    // Salida: RouteEntity persistida con su ID y geometría generada.
+
+    public RouteEntity CreateRoute(RouteEntity routeEntity, List<String> puntosWkt) {
+        // 1. Unimos los puntos en un solo String separado por pipe |
+        // Ejemplo: "POINT(lng lat)|POINT(lng lat)"
+        String puntosUnidos = String.join("|", puntosWkt);
+
         String sql = """
-    INSERT INTO route (
-        id_driver, date_, start_time, end_time,
-        route_status, id_central, id_central_finish, trayecto
-    )
-    VALUES (
-        :id_driver, :date_, :start_time, :end_time,
-        :route_status, :id_central, :id_central_finish,
-        ST_GeomFromText(:trayecto, 4326)
-    )
+        INSERT INTO route (
+            id_driver, date_, start_time, end_time,
+            route_status, id_central, id_central_finish, trayecto
+        )
+        VALUES (
+            :id_driver, :date_, :start_time, :end_time,
+            :route_status, :id_central, :id_central_finish,
+            (
+              SELECT ST_MakeLine(ST_GeomFromText(p, 4326))
+              FROM unnest(string_to_array(:puntosString, '|')) AS p
+            )
+        )
     """;
 
         try (Connection conn = sql2o.open()) {
-            // executeUpdate().getKey() devuelve el ID generado por el SERIAL de Postgres
             Long id = conn.createQuery(sql, true)
                     .bind(routeEntity)
+                    .addParameter("puntosString", puntosUnidos)
                     .executeUpdate()
                     .getKey(Long.class);
 
             routeEntity.setId(id);
             return routeEntity;
         } catch (Exception e) {
-            throw new RuntimeException("Error al insertar ruta nativa: " + e.getMessage());
+            // Imprimimos el error real antes de lanzar la excepción
+            System.err.println("Error SQL detalle: " + e.getMessage());
+            throw new RuntimeException("Error al generar geometría con ST_MakeLine: " + e.getMessage());
         }
     }
+
+    // Explicación en palabras de la sentencia SQL:
+    /*
+    1. La sentencia realiza un INSERT donde el valor de la columna `trayecto` se calcula dinámicamente mediante una subconsulta escalar.
+    2. `string_to_array(:puntosString, '|')` convierte la cadena recibida de Java en un arreglo nativo de PostgreSQL, y `unnest()` expande ese arreglo en filas individuales.
+    3. `ST_GeomFromText(p, 4326)` procesa cada fila de texto (WKT) para convertirla en un objeto geométrico de tipo punto con el sistema de referencia espacial WGS84.
+    4. `ST_MakeLine(...)` funciona como una función de agregación geoespacial que conecta todos los puntos generados en el orden exacto de la lista, conformando el objeto `LineString` final.
+    */
 
     public void linkContainersToRoute(Long routeId, List<ContainerDTO> contenedores) {
         String sqlInsert = "INSERT INTO route_container (id_route, id_container) VALUES (:id_route, :id_container)";

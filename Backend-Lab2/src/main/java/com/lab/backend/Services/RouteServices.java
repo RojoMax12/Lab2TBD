@@ -28,16 +28,16 @@ public class RouteServices {
     public RouteEntity createRoute(RouteRequestDTO dto) {
         RouteEntity entity = new RouteEntity();
 
-        // Mapeo de campos
+        // 1. Mapeo de campos básicos
         entity.setId_driver(dto.getIdDriver());
         entity.setId_central(dto.getIdCentral());
         entity.setId_central_finish(dto.getIdCentralFinish());
 
-        // Manejo de Fecha y Horas
+        // 2. Manejo de Fecha y Horas con validación de segundos
         try {
             entity.setDate_(java.sql.Date.valueOf(dto.getDate()));
 
-            // Validar si ya trae segundos o no
+            // Aseguramos formato HH:mm:ss para java.sql.Time
             String startStr = dto.getStartTime().length() == 5 ? dto.getStartTime() + ":00" : dto.getStartTime();
             String endStr = dto.getEndTime().length() == 5 ? dto.getEndTime() + ":00" : dto.getEndTime();
 
@@ -49,30 +49,30 @@ public class RouteServices {
 
         entity.setRoute_status("Pendiente");
 
-        // CONSTRUCCIÓN SEGURA DEL TRAYECTO (WKT)
-        if (dto.getContenedores() != null && dto.getContenedores().size() >= 2) {
-            List<String> validPoints = new ArrayList<>();
+        // 3. GENERACIÓN DE PUNTOS PARA ST_MakeLine
+        List<String> puntosWkt = new ArrayList<>();
 
+        if (dto.getContenedores() != null && !dto.getContenedores().isEmpty()) {
             for (ContainerDTO c : dto.getContenedores()) {
-                // Verificación estricta de coordenadas antes de concatenar
+                // Verificación de coordenadas no nulas
                 if (c.getLongitude() != null && c.getLatitude() != null) {
-                    // PostGIS SRID 4326: Longitud(X) Latitud(Y)
-                    validPoints.add(c.getLongitude() + " " + c.getLatitude());
+                    // Formato exacto requerido para ST_GeomFromText en la subconsulta
+                    puntosWkt.add("POINT(" + c.getLongitude() + " " + c.getLatitude() + ")");
                 }
             }
-
-            if (validPoints.size() >= 2) {
-                String wkt = "LINESTRING(" + String.join(", ", validPoints) + ")";
-                entity.setTrayecto(wkt);
-            } else {
-                throw new RuntimeException("No hay suficientes coordenadas válidas para crear el trayecto.");
-            }
-        } else {
-            throw new RuntimeException("La ruta debe tener al menos 2 contenedores.");
         }
 
-        RouteEntity savedRoute = routeRepository.CreateRoute(entity);
+        // 4. VALIDACIÓN CRÍTICA: ST_MakeLine requiere al menos un punto para no fallar
+        if (puntosWkt.isEmpty()) {
+            throw new RuntimeException("No se puede crear una ruta sin contenedores con coordenadas válidas.");
+        }
 
+        // 5. LLAMADA AL REPOSITORIO
+        // Se pasan los puntos como lista; el Repositorio los convertirá en String[] o String unido
+        RouteEntity savedRoute = routeRepository.CreateRoute(entity, puntosWkt);
+
+        // 6. VINCULACIÓN INTERMEDIA Y ACTUALIZACIÓN DE ESTADO
+        // Solo si la ruta se guardó correctamente en la tabla 'route'
         if (savedRoute != null && savedRoute.getId() != null) {
             routeRepository.linkContainersToRoute(savedRoute.getId(), dto.getContenedores());
         }
@@ -126,7 +126,7 @@ public class RouteServices {
     }
 
     public List<Map<String, Object>> findDriverEfficiency() {
-            return routeRepository.findDriverEfficiency();
+        return routeRepository.findDriverEfficiency();
     }
 
     public List<Map<String, Object>> compareWastePerformance() {
