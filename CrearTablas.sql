@@ -107,7 +107,8 @@ INSERT INTO container (id_waste, location, weight, status) VALUES
     (1, ST_SetSRID(ST_MakePoint(-70.5980, -33.4850), 4326), 59.0, 'Disponible'), -- ID 7: Macul
     (2, ST_SetSRID(ST_MakePoint(-70.5750, -33.4100), 4326), 70.0, 'Disponible'), -- ID 8: Las Condes (Escuela Militar)
     (3, ST_SetSRID(ST_MakePoint(-70.5890, -33.5200), 4326), 65.0, 'Disponible'), -- ID 9: La Florida
-    (1, ST_SetSRID(ST_MakePoint(-70.7550, -33.5110), 4326), 68.0, 'Disponible'); -- ID 10: Maipú
+    (1, ST_SetSRID(ST_MakePoint(-70.7550, -33.5110), 4326), 68.0, 'Disponible'), -- ID 10: Maipú 
+    (1, ST_SetSRID(ST_MakePoint(-71.6127, -33.0472), 4326), 10.0, 'Disponible'); -- ID 11: Valparaíso
 
 -- Conductores
 INSERT INTO driver (name, last_name, email, password, role) VALUES

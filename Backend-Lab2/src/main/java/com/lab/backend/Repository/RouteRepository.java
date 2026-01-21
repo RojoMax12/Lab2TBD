@@ -533,7 +533,7 @@ public class RouteRepository {
     // CÁLCULO DE KILOMETRAJE (PostGIS Dinámico)
     // =====================================================================
     public Double calculateRouteDistance(Long routeId) {
-        // Esta consulta construye la línea de ruta al vuelo:
+        // Esta consulta construye la línea de ruta
         // 1. Central Inicio -> 2. Contenedores (en orden) -> 3. Central Fin
         // Luego mide la longitud en metros y la convierte a Kilómetros.
         String sql = """

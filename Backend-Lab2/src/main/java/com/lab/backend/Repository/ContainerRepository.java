@@ -233,22 +233,41 @@ public class ContainerRepository {
 
     public List<Map<String, Object>> getContainersOutsideZone() {
         String sql = """
-            SELECT
-                c.id,
-                ST_AsText(c.location) as location
-            FROM container c
-            WHERE NOT EXISTS (
-                SELECT 1
-                FROM collection_zone cz
-                WHERE ST_Intersects(c.location, cz.location)
-            );
-        """;
+        SELECT
+            c.id,
+            ST_AsText(c.location) as location,
+            
+            -- 1. Buscar Comuna (Transformando de 4326 a 3857)
+            COALESCE(
+                (SELECT co.comuna 
+                 FROM comunas co 
+                 WHERE ST_Intersects(ST_Transform(c.location, 3857), co.geom) 
+                 LIMIT 1), 
+                'Zona Desconocida'
+            ) as nombre_comuna,
+
+            -- 2. Buscar Calle más cercana (Transformando de 4326 a 32719)
+            COALESCE(
+                (SELECT ca.nom_ruta 
+                 FROM calles ca 
+                 ORDER BY ca.geom <-> ST_Transform(c.location, 32719) 
+                 LIMIT 1), 
+                'Calle sin nombre'
+            ) as calle_cercana
+
+        FROM container c
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM collection_zone cz
+            WHERE ST_Intersects(c.location, cz.location)
+        );
+    """;
 
         try (Connection connection = sql2o.open()) {
             return connection.createQuery(sql).executeAndFetchTable().asList();
         } catch (Exception e) {
             System.err.println("Error al obtener contenedores fuera de zona: " + e.getMessage());
-            throw new RuntimeException("No se pudo obtener la información de contenedores fuera de zona", e);
+            throw new RuntimeException("No se pudo obtener la información geo-referenciada", e);
         }
     }
 

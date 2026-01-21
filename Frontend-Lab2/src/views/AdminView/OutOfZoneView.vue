@@ -16,7 +16,8 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Ubicación Actual (WKT)</th>
+              <th>Coordenadas</th>
+              <th>Ubicación</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
@@ -25,10 +26,30 @@
           <tbody v-if="!cargando && contenedores.length > 0">
             <tr v-for="cont in contenedores" :key="cont.id">
               <td class="fw-bold">#{{ cont.id }}</td>
-              <td class="text-muted small">{{ cont.location_short }}</td>
+              
+              <td class="coords-cell">
+                <div><span class="fw-bold">Lat:</span> {{ cont.lat }}</div>
+                <div><span class="fw-bold">Lng:</span> {{ cont.lng }}</div>
+              </td>
+
+              <td class="address-cell">
+                <div v-if="cont.calle_cercana">
+                  <i class="bi bi-signpost-2 text-success me-1"></i> 
+                  <strong>{{ cont.calle_cercana }}</strong>
+                  <br>
+                  <small class="text-muted ms-3">
+                    <i class="bi bi-building"></i> {{ cont.nombre_comuna }}
+                  </small>
+                </div>
+                <span v-else class="text-muted small fst-italic">
+                  Sin referencia geográfica
+                </span>
+              </td>
+
               <td>
                 <span class="badge-error">Fuera de Zona</span>
               </td>
+
               <td>
                 <button class="btn-icon" @click="abrirMapa(cont)" title="Ver en Mapa">
                    Ver Ubicación <FaMapLocationDot class="map-icon" />
@@ -39,16 +60,16 @@
 
           <tbody v-if="cargando">
             <tr>
-              <td colspan="4" class="text-center py-4">
+              <td colspan="5" class="text-center py-4">
                 <div class="spinner-border text-success" role="status"></div>
-                <p class="mt-2 text-muted">Analizando geoposiciones...</p>
+                <p class="mt-2 text-muted">Consultando tablas espaciales...</p>
               </td>
             </tr>
           </tbody>
 
           <tbody v-if="!cargando && contenedores.length === 0">
             <tr>
-              <td colspan="4" class="text-center py-4 text-success">
+              <td colspan="5" class="text-center py-4 text-success">
                 <strong>¡Excelente!</strong> No se detectaron contenedores fuera de su zona asignada.
               </td>
             </tr>
@@ -60,16 +81,21 @@
     <div v-if="mostrarModal" class="modal-overlay" @click.self="cerrarModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Detalle de Ubicación - Contenedor #{{ selectedContainer?.id }}</h3>
+          <h3>Ubicación #{{ selectedContainer?.id }}</h3>
           <button class="close-btn" @click="cerrarModal">×</button>
         </div>
 
         <div class="modal-body">
           <div id="mapModal" style="height: 400px; width: 100%; border-radius: 8px;"></div>
-          <p class="warning-text mt-3">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            Este contenedor se encuentra en coordenadas que no intersectan con ninguna zona de recolección activa.
-          </p>
+          
+          <div class="mt-3 text-center">
+             <p class="mb-1 text-danger fw-bold">
+               <i class="bi bi-exclamation-triangle-fill"></i> Fuera de polígono asignado
+             </p>
+             <p class="text-muted border p-2 rounded bg-light d-inline-block">
+               Ref: {{ selectedContainer?.calle_cercana }}, {{ selectedContainer?.nombre_comuna }}
+             </p>
+          </div>
         </div>
       </div>
     </div>
@@ -83,9 +109,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import ContainerService from '../../services/containerservices.js';
 import { FaMapLocationDot, HuRefresh } from '@kalimahapps/vue-icons';
-
-// 2. IMPORTAR EL HEADER/SIDEBAR
-// Ajusta la ruta si tu archivo se llama diferente, basándome en tu estructura es este:
 import HeaderAdmin from '@/components/Admin/HeaderAdmin.vue';
 
 // --- ESTADO ---
@@ -95,52 +118,70 @@ const mostrarModal = ref(false);
 const selectedContainer = ref(null);
 let map = null;
 
-// --- PARSEO WKT ---
+// --- PARSEO WKT (Extraer Lat/Lng del string POINT) ---
 const parseWKT = (wkt) => {
   if (!wkt) return null;
   const match = wkt.match(/POINT\s*\(([^ ]+)\s+([^ ]+)\)/);
   if (match) {
-    return [parseFloat(match[2]), parseFloat(match[1])]; // [Lat, Lng]
+    return {
+      lng: parseFloat(match[1]), 
+      lat: parseFloat(match[2])
+    };
   }
   return null;
 };
 
-// --- LOGICA ---
+// --- CARGAR DATOS (Directo del Backend) ---
 const cargarDatos = async () => {
   cargando.value = true;
   try {
     const res = await ContainerService.getContainersOutsideZone();
-    contenedores.value = res.data.map(c => ({
-      ...c,
-      location_short: c.location ? c.location.replace('POINT', '').replace(/[()]/g, '') : 'N/A'
-    }));
+    
+    // Mapeamos la respuesta. 
+    // Como tu backend YA cruzó los datos con 'calles' y 'comunas', 
+    // aquí solo los mostramos. Cero procesamiento extra.
+    contenedores.value = res.data.map(c => {
+      const coords = parseWKT(c.location);
+      return {
+        ...c,
+        lat: coords ? coords.lat.toFixed(5) : 'N/A',
+        lng: coords ? coords.lng.toFixed(5) : 'N/A',
+        latRaw: coords ? coords.lat : null,
+        lngRaw: coords ? coords.lng : null,
+        // Estos campos vienen de tu nueva Query SQL:
+        calle_cercana: c.calle_cercana, 
+        nombre_comuna: c.nombre_comuna
+      };
+    });
+
   } catch (e) {
-    console.error(e);
+    console.error("Error cargando contenedores:", e);
   } finally {
     cargando.value = false;
   }
 };
 
+// --- LÓGICA DEL MAPA ---
 const abrirMapa = async (contenedor) => {
   selectedContainer.value = contenedor;
   mostrarModal.value = true;
-  await nextTick();
+  await nextTick(); // Esperar a que el modal se renderice
   initMap(contenedor);
 };
 
 const cerrarModal = () => {
   mostrarModal.value = false;
   if (map) {
-    map.remove();
+    map.remove(); // Limpiar instancia de Leaflet
     map = null;
   }
 };
 
 const initMap = (contenedor) => {
-  const coords = parseWKT(contenedor.location);
-  if (!coords) return;
+  if (!contenedor.latRaw || !contenedor.lngRaw) return;
+  const coords = [contenedor.latRaw, contenedor.lngRaw];
 
-  map = L.map('mapModal').setView(coords, 15);
+  map = L.map('mapModal').setView(coords, 16);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
@@ -156,7 +197,12 @@ const initMap = (contenedor) => {
 
   L.marker(coords, { icon: redIcon })
     .addTo(map)
-    .bindPopup(`<b>Contenedor #${contenedor.id}</b><br>Ubicación Errónea`)
+    .bindPopup(`
+      <div class="text-center">
+        <b>${contenedor.calle_cercana}</b><br>
+        <span class="text-muted">${contenedor.nombre_comuna}</span>
+      </div>
+    `)
     .openPopup();
 };
 
@@ -182,28 +228,19 @@ onMounted(() => {
   margin-bottom: 30px;
 }
 
-/* === TARJETA BLANCA === */
+/* === TARJETA === */
 .admin-card {
   background: white;
   border-radius: 20px;
   padding: 30px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
 .card-header-actions {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 25px;
-}
-
-.card-title {
-  color: #4a4f37;
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin: 0;
 }
 
 /* === BOTONES === */
@@ -218,7 +255,7 @@ onMounted(() => {
   transition: background 0.3s;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
 }
 
 .btn-custom:hover {
@@ -229,15 +266,17 @@ onMounted(() => {
   background: #F0F3E7;
   color: #4C7840;
   border: 1px solid #4C7840;
-  padding: 5px 15px;
+  padding: 6px 15px;
   border-radius: 15px;
   font-size: 0.9rem;
   cursor: pointer;
   font-weight: bold;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
 }
+
 .btn-icon:hover {
   background: #4C7840;
   color: white;
@@ -251,10 +290,10 @@ onMounted(() => {
 }
 
 .custom-table th {
-  background-color: #4C7840;
+  background-color: #3E5C44;
   color: white;
   padding: 15px;
-  text-align: left;
+  text-align: center;
   font-weight: 500;
 }
 
@@ -265,19 +304,25 @@ onMounted(() => {
   padding: 15px;
   border-bottom: 1px solid #eee;
   color: #333;
+  vertical-align: middle;
 }
 
 .custom-table tr:hover td {
   background-color: #fcfcfc;
 }
 
-/* === BADGES === */
-.badge-error {
-  background-color: #d1655d;
-  color: white;
-  padding: 5px 12px;
-  border-radius: 12px;
+/* Celdas especiales */
+.coords-cell {
+  font-family: monospace;
   font-size: 0.85rem;
+  color: #666;
+  white-space: nowrap;
+}
+
+.address-cell {
+  min-width: 200px;
+  font-size: 0.95rem;
+  line-height: 1.4;
 }
 
 /* === MODAL === */
@@ -285,7 +330,7 @@ onMounted(() => {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.5);
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -308,10 +353,12 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 20px;
 }
+
 .modal-header h3 {
   margin: 0;
   font-size: 1.2rem;
   color: #4C7840;
+  font-weight: bold;
 }
 
 .close-btn {
@@ -323,21 +370,13 @@ onMounted(() => {
   line-height: 1;
 }
 
-.warning-text {
-  color: #d1655d;
-  font-weight: 500;
-  text-align: center;
+/* Badge de Estado */
+.badge-error {
+  background-color: #d1655d;
+  color: white;
+  padding: 5px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
-
-.map-icon {
-  font-size: 1.2em;
-  margin-left: 5px;
-}
-
-.refresh-icon {
-  font-size: 1.2em;
-  margin-right: 5px;
-}
-
-
 </style>
