@@ -154,6 +154,11 @@ function outOfZone() {
   router.push({ name: 'outofzone' })
 } 
 
+function collectionzones() {
+  showSidebar.value = false
+  router.push({ name: 'collectionzones' })
+}
+
 </script>
 
 <style scoped>
