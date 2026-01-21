@@ -262,12 +262,14 @@ function collectionzones() {
   position: fixed;
   top: 0;
   left: 0;
-  width: 240px;
+  width: 15vw;
+  max-width: 280px;
+  min-width: 200px;
   height: 100vh;
   background: linear-gradient(180deg, #32533D, #3E5C44);
   color: #fff;
   box-shadow: 2px 0 16px rgba(0,0,0,0.13);
-  z-index: 1001;
+  z-index: 1200;
   display: flex;
   flex-direction: column;
   padding: 2rem 1.2rem 1.2rem 1.2rem;
@@ -407,23 +409,25 @@ function collectionzones() {
   background-color: #3E5C44;
 }
 
-@media (max-width: 900px) {
-  .admin-main {
-    padding: 1rem;
-  }
-  .admin-grid {
-    grid-template-columns: 1fr;
-    gap: 1.2rem;
-  }
-  .admin-box, .admin-circle {
-    height: 220px;
-    width: 100%;
-    max-width: 320px;
-    margin: 0 auto;
-  }
+
+/* Media query for smaller height screens */
+@media (max-height: 700px) {
   .sidebar {
-    width: 80vw;
-    min-width: 180px;
+    padding: 1rem 1rem 1rem 1rem; /* Reduced padding */
+  }
+  .sidebar-header {
+    margin-bottom: 1rem; /* Reduced margin */
+  }
+  .sidebar-title {
+    font-size: 1.2rem; /* Slightly reduced font size */
+  }
+  .sidebar-links {
+    gap: 0.8rem; /* Reduced gap between links */
+  }
+  .sidebar-link {
+    padding: 0.4rem 0.8rem; /* Reduced link padding */
+    font-size: 0.9rem; /* Slightly reduced font size */
   }
 }
+
 </style>

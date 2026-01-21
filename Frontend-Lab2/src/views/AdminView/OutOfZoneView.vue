@@ -7,7 +7,7 @@
     <div class="admin-card">
       <div class="card-header-actions">
         <button class="btn-custom" @click="cargarDatos">
-          <i class="bi bi-arrow-clockwise"></i> Refrescar Análisis
+          <HuRefresh class="refresh-icon" /> Refrescar Análisis
         </button>
       </div>
 
@@ -21,7 +21,7 @@
               <th>Acciones</th>
             </tr>
           </thead>
-          
+
           <tbody v-if="!cargando && contenedores.length > 0">
             <tr v-for="cont in contenedores" :key="cont.id">
               <td class="fw-bold">#{{ cont.id }}</td>
@@ -31,7 +31,7 @@
               </td>
               <td>
                 <button class="btn-icon" @click="abrirMapa(cont)" title="Ver en Mapa">
-                   Ver Ubicación 🗺️
+                   Ver Ubicación <FaMapLocationDot class="map-icon" />
                 </button>
               </td>
             </tr>
@@ -63,11 +63,11 @@
           <h3>Detalle de Ubicación - Contenedor #{{ selectedContainer?.id }}</h3>
           <button class="close-btn" @click="cerrarModal">×</button>
         </div>
-        
+
         <div class="modal-body">
           <div id="mapModal" style="height: 400px; width: 100%; border-radius: 8px;"></div>
           <p class="warning-text mt-3">
-            <i class="bi bi-exclamation-triangle-fill"></i> 
+            <i class="bi bi-exclamation-triangle-fill"></i>
             Este contenedor se encuentra en coordenadas que no intersectan con ninguna zona de recolección activa.
           </p>
         </div>
@@ -82,6 +82,7 @@ import { ref, onMounted, nextTick } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import ContainerService from '../../services/containerservices.js';
+import { FaMapLocationDot, HuRefresh } from '@kalimahapps/vue-icons';
 
 // 2. IMPORTAR EL HEADER/SIDEBAR
 // Ajusta la ruta si tu archivo se llama diferente, basándome en tu estructura es este:
@@ -168,16 +169,16 @@ onMounted(() => {
 /* === LAYOUT GENERAL === */
 .admin-container {
   min-height: 100vh;
-  background-color: #f4e9da;
+  background-color: #F0F3E7;
   padding: 40px;
-  /* IMPORTANTE: Si tu HeaderAdmin es "fixed", deja este padding. 
+  /* IMPORTANTE: Si tu HeaderAdmin es "fixed", deja este padding.
      Si es "static" (se mueve con el scroll), puedes bajarlo a 20px o 0 */
-  padding-top: 40px; 
+  padding-top: 40px;
 }
 
 .page-title {
   text-align: center;
-  color: #4a4f37;
+  color: #4C7840;
   font-weight: bold;
   font-size: 2rem;
   margin-bottom: 30px;
@@ -209,7 +210,7 @@ onMounted(() => {
 
 /* === BOTONES === */
 .btn-custom {
-  background-color: #5f6949;
+  background-color: #4C7840;
   color: white;
   border: none;
   padding: 10px 25px;
@@ -217,24 +218,30 @@ onMounted(() => {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-custom:hover {
-  background-color: #4c553a;
+  background-color: #3E5C44;
 }
 
 .btn-icon {
-  background: #f4e9da;
-  color: #5f6949;
-  border: 1px solid #5f6949;
+  background: #F0F3E7;
+  color: #4C7840;
+  border: 1px solid #4C7840;
   padding: 5px 15px;
   border-radius: 15px;
   font-size: 0.9rem;
   cursor: pointer;
   font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .btn-icon:hover {
-  background: #5f6949;
+  background: #4C7840;
   color: white;
 }
 
@@ -246,7 +253,7 @@ onMounted(() => {
 }
 
 .custom-table th {
-  background-color: #5f6949;
+  background-color: #4C7840;
   color: white;
   padding: 15px;
   text-align: left;
@@ -306,7 +313,7 @@ onMounted(() => {
 .modal-header h3 {
   margin: 0;
   font-size: 1.2rem;
-  color: #5f6949;
+  color: #4C7840;
 }
 
 .close-btn {
@@ -323,4 +330,16 @@ onMounted(() => {
   font-weight: 500;
   text-align: center;
 }
+
+.map-icon {
+  font-size: 1.2em; /* Adjust as needed */
+  margin-left: 5px; /* Add some space from text */
+}
+
+.refresh-icon {
+  font-size: 1.2em; /* Adjust as needed */
+  margin-right: 5px; /* Add some space from text */
+}
+
+
 </style>
