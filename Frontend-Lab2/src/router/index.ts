@@ -9,6 +9,7 @@ import UsersView from '../views/AdminView/UsersView.vue'
 import ContainersView from '../views/AdminView/ContainerView.vue'
 import RouteView from '../views/AdminView/RouteView.vue'
 import AdminsView from '../views/AdminView/AdminsView.vue'
+import CollectionZonesView from '../views/AdminView/CollectionZonesView.vue'
 import RouteAssignedView from '@/views/User/RouteAssignedView.vue'
 import CentralView from '@/views/AdminView/CentralView.vue'
 import ServicesView from '../views/ServicesView.vue'
@@ -28,6 +29,7 @@ const router = createRouter({
     { path: '/container', name: 'containers', component: ContainersView, meta: { requiresAuth: true } },
     { path: '/route', name: 'route', component: RouteView, meta: { requiresAuth: true } },
     { path: '/admins', name: 'admins', component: AdminsView, meta: { requiresAuth: true } },
+    { path: '/collection-zones', name: 'collectionzones', component: CollectionZonesView, meta: { requiresAuth: true } },
     { path: '/route-assigned', name: 'route-assigned', component: RouteAssignedView },
     { path: '/centrals', name: 'centrals', component: CentralView, meta: { requiresAuth: true } },
     { path: '/services', name: 'services', component: ServicesView},

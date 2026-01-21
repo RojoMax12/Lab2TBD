@@ -37,6 +37,7 @@
       <a class="sidebar-link" @click="admins()">Adminstradores</a>
       <a class="sidebar-link" @click="centrals()">Centrales</a>
       <a class="sidebar-link" @click="rutas()">Rutas</a>
+      <a class="sidebar-link" @click="collectionzones()">Zonas de Recolección</a>
     </nav>
   </aside>
 
@@ -144,6 +145,11 @@ function admins() {
 function centrals() {
   showSidebar.value = false
   router.push({ name: 'centrals' })
+}
+
+function collectionzones() {
+  showSidebar.value = false
+  router.push({ name: 'collectionzones' })
 }
 
 </script>

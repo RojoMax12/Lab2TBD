@@ -84,8 +84,11 @@ INSERT INTO central (name, location) VALUES
     ('Central Sur', ST_SetSRID(ST_MakePoint(-70.6483, -33.4843), 4326));   
 
 -- Ejemplo de Zona de Recolección (Polígono)
+-- Zonas de recolección alineadas con ubicaciones de los contenedores (agrupan contenedores por área)
 INSERT INTO collection_zone (name, location) VALUES
-	('Sector Centro', ST_GeomFromText('POLYGON((10 20, 20 20, 20 30, 10 30, 10 20))', 4326));
+    ('Zona Centro', ST_GeomFromText('POLYGON((-70.6964 -33.4600, -70.6350 -33.4600, -70.6350 -33.4100, -70.6964 -33.4100, -70.6964 -33.4600))', 4326)),
+    ('Zona Oriente', ST_GeomFromText('POLYGON((-70.6200 -33.4900, -70.5700 -33.4900, -70.5700 -33.4050, -70.6200 -33.4050, -70.6200 -33.4900))', 4326)),
+    ('Zona Sur', ST_GeomFromText('POLYGON((-70.7600 -33.5250, -70.5840 -33.5250, -70.5840 -33.4850, -70.7600 -33.4850, -70.7600 -33.5250))', 4326));
 
 -- Tipos de residuos
 INSERT INTO waste (waste_type) VALUES
