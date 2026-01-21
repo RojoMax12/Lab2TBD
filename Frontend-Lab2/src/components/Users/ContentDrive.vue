@@ -2,24 +2,7 @@
   <div class="container">
     <div class="map-container">
       <div class="map-inner">
-        <img class="map-image" src="/Mapa-ruta.png" alt="Mapa de ruta" />
-
-        <!-- SVG overlay for lines connecting markers -->
-        <svg class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <!-- line connecting only containers (solid/highlight) -->
-          <polyline :points="polylineContainersPoints" class="overlay-line-containers" />
-          <!-- full route line (start -> containers -> finish) dashed -->
-          <polyline :points="polylinePoints" class="overlay-line" />
-        </svg>
-
-        <!-- Markers for containers (positioned over the image) -->
-     <div v-for="m in markers" :key="m.id" 
-       class="marker" 
-       :class="[ { next: routeactual.next_point && String(routeactual.next_point.id) === String(m.id) }, m.type ]"
-       :style="{ left: m.left, top: m.top }"
-       @click="handleMarkerClick(m)">
-          <span class="marker-label">{{ m.label }}</span>
-        </div>
+        <div ref="mapElement" id="driver-map" class="driver-map"></div>
       </div>
     </div>
 
@@ -94,6 +77,19 @@
             Ruta completada
           </button>
         </div>
+        <div class="full-width-box">
+          <span class="label">Contenedor cercano</span>
+          <div v-if="nearestContainer">
+            <input class="value-input" readonly :value="`ID: ${nearestContainer.id} — Estado: ${nearestContainer.status || 'N/A'}`" />
+            <div style="margin-top:0.5rem; display:flex; gap:0.5rem;">
+              <button class="small-action" @click="centerOnNearest">Centrar en mapa</button>
+              <button class="small-action" @click="findNearest">Actualizar</button>
+            </div>
+          </div>
+          <div v-else>
+            <button class="small-action" @click="findNearest">Buscar contenedor cercano</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -115,6 +111,8 @@ import RouteContainer from '@/services/route_containerservices';
 import ContainerServices from '@/services/containerservices';
 import WasteServices from '@/services/wasteservices';
 import PickUpServices from '@/services/pickupservices';
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 
 // Referencias reactivas
@@ -135,6 +133,37 @@ const centralFinish = ref({});
 const routecontainers = ref([]); // Lista de la tabla de unión
 const containersData = ref([]); // Lista de objetos contenedor
 const wastesData = ref([]);   // Lista de objetos waste (residuos)
+// Referencias del mapa Leaflet
+const mapElement = ref(null)
+const mapObj = ref(null)
+const markersLayer = ref(null)
+const polylineLayer = ref(null)
+
+// Auxiliar: parsear POINT WKT o usar coord_x/coord_y como alternativa
+function getCoordsFromContainer(container) {
+  if (!container) return { lat: null, lng: null }
+  // Nombres de campo comunes que pueden contener WKT desde el backend
+  const wktCandidates = [container.location, container.geom, container.wkt, container.wkt_location]
+  for (const w of wktCandidates) {
+    if (!w || typeof w !== 'string') continue
+    const trimmed = w.trim()
+    if (trimmed.startsWith('POINT(') && trimmed.endsWith(')')) {
+      const inner = trimmed.slice(6, -1).trim()
+      // POINT: normalmente 'X Y' donde X=lng, Y=lat
+      const parts = inner.split(/\s+/)
+      if (parts.length >= 2) {
+        const x = Number(parts[0])
+        const y = Number(parts[1])
+        if (!Number.isNaN(x) && !Number.isNaN(y)) return { lat: y, lng: x }
+      }
+    }
+  }
+  // Alternativa a campos numéricos (la app original usa coord_x / coord_y)
+  const cx = container.coord_x != null ? Number(container.coord_x) : (container.longitude != null ? Number(container.longitude) : null)
+  const cy = container.coord_y != null ? Number(container.coord_y) : (container.latitude != null ? Number(container.latitude) : null)
+  if (cx != null && cy != null && !Number.isNaN(cx) && !Number.isNaN(cy)) return { lat: cy, lng: cx }
+  return { lat: null, lng: null }
+}
 const processingNext = ref(false);
 const markers = ref([]); // marcadores para mostrar en el mapa
 const polylinePoints = ref(''); // cadena de puntos para polyline SVG (inicio->contenedores->fin)
@@ -145,6 +174,9 @@ const name = ref('');
 const lastname = ref('');
 const userEmail = ref('');
 const router = useRouter();
+ 
+// Contenedor más cercano encontrado por el backend
+const nearestContainer = ref(null);
 
 
 onMounted(() => {
@@ -160,6 +192,8 @@ onMounted(() => {
   } catch (error) {
     console.error("Error al decodificar token:", error);
   }
+  // Inicializar el contenedor del mapa inmediatamente
+  try { initMap() } catch (e) { /* ignorar */ }
 });
 
 
@@ -243,6 +277,16 @@ async function fetchContainerRoute(routeId) {
       const resContainer = await ContainerServices.getContainerById(rc.id_container);
       const container = resContainer.data;
       
+      // If backend provides WKT geometry, prefer it over legacy coord_x/coord_y
+      try {
+        const parsed = getCoordsFromContainer(container)
+        if (parsed && parsed.lat != null && parsed.lng != null) {
+          // normalize to existing fields used across the component
+          container.coord_y = parsed.lat
+          container.coord_x = parsed.lng
+        }
+      } catch (e) { /* ignore parse errors */ }
+
       let waste = null;
       if (container?.id_waste) {
         const resWaste = await WasteServices.getWasteById(container.id_waste);
@@ -346,8 +390,103 @@ function computeMarkers() {
   polylineContainersPoints.value = containerMarkers.map(m => `${m.leftPct},${m.topPct}`).join(' ');
 }
 
+// Initialize Leaflet map
+function initMap() {
+  try {
+    if (!mapElement.value) return
+    // determine initial center
+    let centerLat = 0
+    let centerLng = 0
+    if (centralStart.value && centralStart.value.coord_y && centralStart.value.coord_x) {
+      centerLat = Number(centralStart.value.coord_y)
+      centerLng = Number(centralStart.value.coord_x)
+    } else if (containersData.value && containersData.value.length > 0) {
+      centerLat = Number(containersData.value[0].coord_y)
+      centerLng = Number(containersData.value[0].coord_x)
+    }
+
+    // create map only once
+    if (!mapObj.value) {
+      mapObj.value = L.map(mapElement.value).setView([centerLat || 0, centerLng || 0], 13)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(mapObj.value)
+      markersLayer.value = L.layerGroup().addTo(mapObj.value)
+      polylineLayer.value = L.layerGroup().addTo(mapObj.value)
+    }
+  } catch (e) {
+    console.warn('Error inicializando mapa', e)
+  }
+}
+
+// Render containers and route on the map
+function renderMap() {
+  try {
+    if (!mapObj.value) initMap()
+    if (!mapObj.value) return
+
+    // clear layers
+    try { markersLayer.value.clearLayers(); } catch(_){}
+    try { polylineLayer.value.clearLayers(); } catch(_){}
+
+    // build ordered points: start -> containers -> finish
+    const latlngs = []
+    if (centralStart.value && centralStart.value.coord_x != null && centralStart.value.coord_y != null) {
+      latlngs.push([Number(centralStart.value.coord_y), Number(centralStart.value.coord_x)])
+      const m = L.circleMarker([Number(centralStart.value.coord_y), Number(centralStart.value.coord_x)], { radius:6, color: '#2d8cff' })
+      m.bindPopup(`<strong>Central inicio</strong><br>${centralStart.value.name || ''}`)
+      markersLayer.value.addLayer(m)
+    }
+
+    // containers in order (use routecontainers order if available)
+    const containerById = {}
+    containersData.value.forEach(c => { containerById[String(c.id)] = c })
+    const orderedContainers = []
+    if (routecontainers.value && routecontainers.value.length > 0) {
+      routecontainers.value.forEach(rc => {
+        const c = containerById[String(rc.id_container)];
+        if (c) orderedContainers.push(c)
+      })
+      // append any remaining
+      containersData.value.forEach(c => { if (!orderedContainers.some(x => String(x.id)===String(c.id))) orderedContainers.push(c) })
+    } else {
+      orderedContainers.push(...containersData.value)
+    }
+
+    orderedContainers.forEach((c, idx) => {
+      if (c && c.coord_x != null && c.coord_y != null) {
+        const lat = Number(c.coord_y)
+        const lng = Number(c.coord_x)
+        latlngs.push([lat, lng])
+        const wasteName = wastesData.value.find(w => w && String(w.id) === String(c.id_waste))?.waste_type || 'N/A'
+        const popup = `<strong>Contenedor ${c.id}</strong><br>Estado: ${c.status || 'N/A'}<br>Peso: ${c.weight || 'N/A'}<br>Residuo: ${wasteName}${c.location ? '<br>Ubicación: '+c.location : ''}`
+        const marker = L.circleMarker([lat, lng], { radius:7, color: '#5e6541', fillColor:'#5e6541', fillOpacity:0.9 })
+        marker.bindPopup(popup)
+        marker.on('click', () => handleMarkerClick({ id: c.id, type: 'container', raw: c }))
+        markersLayer.value.addLayer(marker)
+      }
+    })
+
+    if (centralFinish.value && centralFinish.value.coord_x != null && centralFinish.value.coord_y != null) {
+      latlngs.push([Number(centralFinish.value.coord_y), Number(centralFinish.value.coord_x)])
+      const m2 = L.circleMarker([Number(centralFinish.value.coord_y), Number(centralFinish.value.coord_x)], { radius:6, color: '#ff6b6b' })
+      m2.bindPopup(`<strong>Central fin</strong><br>${centralFinish.value.name || ''}`)
+      markersLayer.value.addLayer(m2)
+    }
+
+    if (latlngs.length > 0) {
+      const poly = L.polyline(latlngs, { color: '#4e5336', weight: 3 })
+      polylineLayer.value.addLayer(poly)
+      try { mapObj.value.fitBounds(poly.getBounds(), { padding: [40,40] }) } catch(e) { /* ignore fit */ }
+    }
+
+  } catch (e) {
+    console.warn('Error al renderizar mapa', e)
+  }
+}
+
 // Recalcular marcadores cuando cambien containersData, centralStart o centralFinish
-watch([containersData, centralStart, centralFinish], () => computeMarkers());
+watch([containersData, centralStart, centralFinish], () => { computeMarkers(); renderMap(); })
 
 function handleMarkerClick(m) {
   // establecer next_point a este contenedor (o central si se clicó start/finish)
@@ -361,6 +500,81 @@ function handleMarkerClick(m) {
   }
   // opcional: mostrar información pequeña o desplazarse al contenedor en la UI
   console.log('Marcador clicado', m);
+}
+
+// Buscar el contenedor más cercano usando el servicio del backend
+async function findNearest() {
+  try {
+    let lat = null;
+    let lng = null;
+    if (mapObj.value) {
+      const c = mapObj.value.getCenter();
+      lat = c.lat; lng = c.lng;
+    } else if (centralStart.value && centralStart.value.coord_y != null) {
+      lat = Number(centralStart.value.coord_y);
+      lng = Number(centralStart.value.coord_x);
+    } else if (containersData.value && containersData.value.length > 0) {
+      lat = Number(containersData.value[0].coord_y);
+      lng = Number(containersData.value[0].coord_x);
+    }
+
+    if (lat == null || lng == null) {
+      alert('No hay referencia de ubicación para buscar contenedores.');
+      return;
+    }
+
+    const resp = await ContainerServices.getNearestContainer(lng, lat);
+    if (resp && resp.data) {
+      nearestContainer.value = resp.data;
+      // si el backend retornó WKT o campos alternativos, intentar parsear coordenadas
+      try {
+        const parsed = getCoordsFromContainer(resp.data);
+        if (parsed && parsed.lat != null && parsed.lng != null) {
+          nearestContainer.value.coord_y = parsed.lat;
+          nearestContainer.value.coord_x = parsed.lng;
+        }
+      } catch (e) { /* ignore parse error */ }
+
+      // centrar en el mapa si ahora hay coordenadas
+      const cy = nearestContainer.value.coord_y;
+      const cx = nearestContainer.value.coord_x;
+      if (mapObj.value && cy != null && cx != null) {
+        try { mapObj.value.setView([Number(cy), Number(cx)], 16); } catch(e) { /* ignore */ }
+      }
+    } else {
+      nearestContainer.value = null;
+      alert('No se encontró contenedor cercano');
+    }
+  } catch (e) {
+    console.error('Error buscando contenedor cercano', e);
+    alert('Error buscando contenedor cercano');
+  }
+}
+
+function centerOnNearest() {
+  if (!nearestContainer.value) {
+    alert('No hay contenedor cercano seleccionado');
+    return;
+  }
+
+  // Asegurar que disponemos de coord_x/coord_y; si no, intentar parsear WKT
+  if ((nearestContainer.value.coord_y == null || nearestContainer.value.coord_x == null) && nearestContainer.value) {
+    try {
+      const parsed = getCoordsFromContainer(nearestContainer.value);
+      if (parsed && parsed.lat != null && parsed.lng != null) {
+        nearestContainer.value.coord_y = parsed.lat;
+        nearestContainer.value.coord_x = parsed.lng;
+      }
+    } catch(e) { /* ignore */ }
+  }
+
+  const cy = nearestContainer.value.coord_y;
+  const cx = nearestContainer.value.coord_x;
+  if (mapObj.value && cy != null && cx != null) {
+    try { mapObj.value.setView([Number(cy), Number(cx)], 16); } catch(e) { /* ignore */ }
+  } else {
+    alert('No se encontraron coordenadas del contenedor para centrar el mapa.');
+  }
 }
 
 
@@ -581,6 +795,7 @@ function routeAssigned() {
 
 .map-inner { position: relative; display: block; width: 100%; }
 .map-image { display: block; width: 100%; height: auto; border-radius: 1rem; }
+.driver-map { width: 100%; height: 520px; border-radius: 1rem; }
 .marker {
   position: absolute;
   width: 20px;
@@ -660,6 +875,18 @@ function routeAssigned() {
   background: #4a4f37;
   box-shadow: 0 6px 18px rgb(255, 255, 255);
 }
+
+.small-action {
+  background: #ffffff;
+  border: 1px solid #dcd6c8;
+  color: #4e5336;
+  padding: 0.45rem 0.8rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.small-action:hover { background: #f2f2f2; }
 
 .info-panel {
   background: #f7f7f7;

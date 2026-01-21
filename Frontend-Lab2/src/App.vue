@@ -13,7 +13,7 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: #f7e8dd;
+  background-color: #F0F3E7;
   padding-bottom: 80px;
 }
 
@@ -23,7 +23,7 @@ html, body {
   min-height: auto;
   height: auto;
   width: 100%;
-  background-color: #f7e8dd;
+  background-color: #F0F3E7;
   margin: 0;
   padding: 0;
   padding-bottom: 80px; /* espacio abajo */

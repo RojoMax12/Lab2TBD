@@ -32,8 +32,14 @@
                 <td>{{ route.start_time }}</td>
                 <td>{{ route.end_time }}</td>
                 <td>{{ route.route_status }}</td>
-                <td>{{ getNameCentralById(route.id_central) }}</td>
-                <td>{{ getNameCentralById(route.id_central_finish) }}</td>
+                <td>
+                  <div>{{ getNameCentralById(route.id_central) }}</div>
+                  <div style="font-size:0.85rem;color:#6b6b6b">{{ getCentralCoordsById(route.id_central) }}</div>
+                </td>
+                <td>
+                  <div>{{ getNameCentralById(route.id_central_finish) }}</div>
+                  <div style="font-size:0.85rem;color:#6b6b6b">{{ getCentralCoordsById(route.id_central_finish) }}</div>
+                </td>
                 <td class="row-actions">
                   <button
                     class="btn-take"
@@ -70,6 +76,7 @@ const userEmail = ref(""); // Email del usuario logueado
 const driver = ref(null); // Conductor obtenido desde la API
 const central = ref(null); // Central obtenida desde la API
 const centralNames = ref({}); // cache id -> name
+const centralCoords = ref({});
 
 
 // Obtener los datos del conductor logueado
@@ -120,6 +127,36 @@ function getNameCentralById(id) {
     })
 
   return 'Cargando...'
+}
+
+function getCentralCoordsById(id) {
+  if (id === null || id === undefined) return 'N/A'
+  const key = String(id)
+  if (centralCoords.value[key]) return centralCoords.value[key]
+  centralCoords.value[key] = 'Cargando...'
+  centralServices.getCentralById(id)
+    .then(res => {
+      const c = (res && res.data) ? res.data : res
+      const w = c && (c.location || c.geom || c.wkt)
+      if (w && typeof w === 'string' && w.startsWith('POINT(')) {
+        const inner = w.slice(6, -1).trim()
+        const parts = inner.split(/\s+/)
+        if (parts.length >= 2) {
+          const x = Number(parts[0])
+          const y = Number(parts[1])
+          if (!Number.isNaN(x) && !Number.isNaN(y)) {
+            centralCoords.value[key] = `${y.toFixed(6)}, ${x.toFixed(6)}`
+            return
+          }
+        }
+      }
+      const cx = c && (c.coord_x || c.longitude)
+      const cy = c && (c.coord_y || c.latitude)
+      if (cx != null && cy != null) centralCoords.value[key] = `${Number(cy).toFixed(6)}, ${Number(cx).toFixed(6)}`
+      else centralCoords.value[key] = ''
+    })
+    .catch(err => { centralCoords.value[key] = '' })
+  return centralCoords.value[key]
 }
 
 // Navegar a la vista de ruta actual

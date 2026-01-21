@@ -26,8 +26,14 @@
                 <td>{{ route.start_time || 'Hora no disponible' }}</td>
                 <td>{{ route.end_time || 'Hora no disponible' }}</td>
                 <td>{{ route.route_status || 'Estado no disponible' }}</td>
-                <td>{{ getCentralNameById(route.id_central) }}</td>
-                <td>{{ getCentralNameById(route.id_central_finish) }}</td>
+                <td>
+                  <div>{{ getCentralNameById(route.id_central) }}</div>
+                  <div style="font-size:0.85rem;color:#6b6b6b">{{ getCentralCoordsById(route.id_central) }}</div>
+                </td>
+                <td>
+                  <div>{{ getCentralNameById(route.id_central_finish) }}</div>
+                  <div style="font-size:0.85rem;color:#6b6b6b">{{ getCentralCoordsById(route.id_central_finish) }}</div>
+                </td>
               </tr>
             </tbody>
         </table>
@@ -52,6 +58,7 @@ const centralStart = ref(null); // Central de inicio
 const centralEnd = ref(null); // Central de termino
 const centralNames = ref({}); // cache id -> name
 const driverNames = ref({}); // cache id -> name
+const centralCoords = ref({}); // cache id -> 'lat, lng' or placeholder
 
 // Obtener los datos del conductor logueado
 async function getDriverData(email) {
@@ -114,6 +121,41 @@ function getCentralNameById(centralId) {
     })
 
   return centralNames.value[key]
+}
+
+// Devuelve coordenadas formateadas desde la central (prefiere WKT `location`)
+function getCentralCoordsById(centralId) {
+  if (centralId === null || centralId === undefined) return 'N/A'
+  const key = String(centralId)
+  if (centralCoords.value[key]) return centralCoords.value[key]
+  centralCoords.value[key] = 'Cargando...'
+  CentralServices.getCentralById(centralId)
+    .then(res => {
+      const c = res && res.data ? res.data : res
+      const w = c && (c.location || c.geom || c.wkt)
+      if (w && typeof w === 'string' && w.startsWith('POINT(')) {
+        const inner = w.slice(6, -1).trim()
+        const parts = inner.split(/\s+/)
+        if (parts.length >= 2) {
+          const x = Number(parts[0])
+          const y = Number(parts[1])
+          if (!Number.isNaN(x) && !Number.isNaN(y)) {
+            centralCoords.value[key] = `${y.toFixed(6)}, ${x.toFixed(6)}`
+            return
+          }
+        }
+      }
+      // fallback to coord fields
+      const cx = c && (c.coord_x || c.longitude)
+      const cy = c && (c.coord_y || c.latitude)
+      if (cx != null && cy != null) centralCoords.value[key] = `${Number(cy).toFixed(6)}, ${Number(cx).toFixed(6)}`
+      else centralCoords.value[key] = ''
+    })
+    .catch(err => {
+      console.error('Error fetching central coords', err)
+      centralCoords.value[key] = ''
+    })
+  return centralCoords.value[key]
 }
 
 

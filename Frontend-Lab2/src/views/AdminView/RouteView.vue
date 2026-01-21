@@ -667,7 +667,7 @@ onMounted(() => {
 
 .title, .subtitle {
   text-align: center;
-  color: #4a4f37;
+  color: #3E5C44;
   font-weight: bold;
 }
 
@@ -678,7 +678,7 @@ onMounted(() => {
 
 /* === BOTÓN GENERAL === */
 .btn-plan {
-  background-color: #5f6949;
+  background-color: #4C7840;
   color: white;
   padding: 10px 20px;
   border-radius: 25px;
@@ -692,7 +692,7 @@ onMounted(() => {
 }
 
 .btn-plan:hover {
-  background-color: #4c553a;
+  background-color: #3E5C44;
 }
 
 /* === MODAL === */
@@ -732,6 +732,7 @@ onMounted(() => {
 .label {
   margin-top: 10px;
   font-weight: 600;
+  color: #3E5C44;
 }
 
 .input {
@@ -807,12 +808,12 @@ onMounted(() => {
 .inefficient-table thead th {
   position: sticky;
   top: 0;
-  background: #5f6949;
+  background: #3E5C44;
   color: #ffffff;
   font-weight: bold;
   padding: 14px;
   text-align: center;
-  border-bottom: 2px solid #4a4f37;
+  border-bottom: 2px solid #32533D;
   z-index: 2;
 }
 
@@ -906,7 +907,7 @@ onMounted(() => {
 }
 
 .btn-view {
-  background-color: #5f6949;
+  background-color: #4C7840;
   color: white;
   padding: 6px 10px;
   border-radius: 6px;
@@ -916,7 +917,7 @@ onMounted(() => {
 }
 
 .btn-view:hover {
-  background-color: #4c553a;
+  background-color: #3E5C44;
 }
 
 /* modal del mapa */
@@ -1012,7 +1013,7 @@ onMounted(() => {
 }
 
 .route-info-box h3 {
-  color: #4a4f37;
+  color: #3E5C44;
   font-size: 1.2rem;
   margin-bottom: 15px;
   text-align: center;

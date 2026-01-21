@@ -49,7 +49,7 @@
       <div class="grid-row" v-for="central in centrals" :key="central.id">
         <div>{{ central.id }}</div>
         <div>{{ central.name }}</div>
-        <div>{{ formatLocation(central.location) }}</div>
+        <div v-html="formatLocation(central.location)"></div>
         <div class="row-actions">
           <button class="btn-edit" @click="abrirModalEditar(central)">Editar</button>
           <button class="btn-delete" @click="eliminarCentral(central.id)">Eliminar</button>
@@ -148,7 +148,7 @@ export default {
       const match = wkt.match(/\(([^)]+)\)/);
       if (match) {
         const [lon, lat] = match[1].split(' ');
-        return `X= ${lon} ; Y= ${lat}`;
+        return `X= ${lon} <br> Y= ${lat}`;
       }
       return wkt;
     };
@@ -188,7 +188,7 @@ export default {
   font-size: 26px;
   font-weight: bold;
   margin-bottom: 25px;
-  color: #4a4f37;
+  color: #3E5C44;
 }
 
 /* ========================== 
@@ -202,7 +202,7 @@ export default {
 
 .btn-add {
   padding: 10px 18px;
-  background: #4a4f37;
+  background: #4C7840;
   color: white;
   border: none;
   border-radius: 6px;
@@ -210,7 +210,7 @@ export default {
 }
 
 .btn-add:hover {
-  background: #393d2b;
+  background: #3E5C44;
 }
 
 /* ========================== 
@@ -218,8 +218,8 @@ export default {
 ========================== */
 .grid-header {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  background: #52563f;
+  grid-template-columns: repeat(4, 1fr);
+  background: #3E5C44;
   color: white;
   padding: 12px;
   border-radius: 6px;
@@ -229,7 +229,7 @@ export default {
 
 .grid-row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   padding: 12px;
   align-items: center;
   border-bottom: 1px solid #ddd;
@@ -290,7 +290,7 @@ export default {
 .modal h2 {
   text-align: center;
   margin-bottom: 20px;
-  color: #4a4f37;
+  color: #3E5C44;
 }
 
 @keyframes fadeInScale {

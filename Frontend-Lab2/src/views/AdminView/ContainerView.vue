@@ -14,17 +14,17 @@
     <div v-if="mostrarModal" class="modal-overlay" @click.self="cerrarModal">
       <div class="modal">
         <h2>{{ editando ? 'Editar Contenedor' : 'Nuevo Contenedor' }}</h2>
-        
+
         <div class="form-group">
           <label for="waste-type">Tipo de residuo</label>
           <select v-model="nuevoContenedor.id_waste" id="waste-type">
             <option value="" disabled>Seleccione un tipo de residuo</option>
-            <option 
+            <option
                 v-for="waste in wasteTypes"
                 :key="waste.id"
                 :value="waste.id"
             >
-                {{ waste.waste_type || waste.name || `ID ${waste.id}` }} 
+                {{ waste.waste_type || waste.name || `ID ${waste.id}` }}
             </option>
           </select>
         </div>
@@ -115,8 +115,8 @@
         class="grid-row"
       >
         <div>{{ contenedor.id }}</div>
-        <div>{{ getWasteName(contenedor.id_waste) }}</div> 
-        <div>{{ formatLocation(contenedor.location) }}</div>
+        <div>{{ getWasteName(contenedor.id_waste) }}</div>
+        <div v-html="formatLocation(contenedor.location)"></div>
         <div>{{ contenedor.weight }}</div>
         <div>{{ contenedor.status }}</div>
         <div class="row-actions">
@@ -143,7 +143,7 @@
         class="grid-row-norec"
       >
         <div>{{ contenedorsinrecolectar.id_contenedor }}</div>
-        <div>{{ formatLocation(contenedorsinrecolectar.location) }}</div>
+        <div v-html="formatLocation(contenedorsinrecolectar.location)"></div>
         <div>{{ contenedorsinrecolectar.ultima_recoleccion }}</div>
         <div>{{ contenedorsinrecolectar.tipo_residuo }}</div>
       </div>
@@ -186,7 +186,7 @@
     <div class="scrollable-table">
       <div
         v-for="contenedordensidad in analisisdensidad"
-        :key="contenedordensidad.month" 
+        :key="contenedordensidad.month"
         class="grid-row-density"
       >
         <div>{{ contenedordensidad.month }}</div>
@@ -229,7 +229,7 @@ export default {
     const rutas = ref([])
     const wasteTypes = ref([]) // Lista de tipos de residuos
     // wasteactual ya no es necesario si usamos mapeo global, pero lo dejo como null
-    const wasteactual = ref(null) 
+    const wasteactual = ref(null)
 
     const nuevoContenedor = ref({
       id: null,
@@ -258,7 +258,7 @@ export default {
         try {
             const response = await containerServices.getAllContainers();
             const data = response.data || response;
-            contenedores.value = Array.isArray(data) ? data.sort((a, b) => a.id - b.id) : []; 
+            contenedores.value = Array.isArray(data) ? data.sort((a, b) => a.id - b.id) : [];
         } catch (error) {
             console.error("Error al obtener contenedores:", error);
             contenedores.value = [];
@@ -343,7 +343,7 @@ export default {
     const obtenerTiposDeWaste = async () => {
     try {
         const response = await wasteService.getAllWastes();
-        
+       
         wasteTypes.value = response.data || response;
     } catch (error) {
         console.error("Error al obtener tipos de residuos:", error);
@@ -367,12 +367,12 @@ export default {
     // Función para dar formato a coordenadas
     const formatLocation = (wkt) => {
       if (!wkt) return "Sin coordenadas";
-      
+
       // Usamos una expresión regular para extraer los números
       const match = wkt.match(/\(([^)]+)\)/);
       if (match) {
         const [lon, lat] = match[1].split(' ');
-        return `X= ${lon} ; Y= ${lat}`;
+        return `X= ${lon} <br> Y= ${lat}`;
       }
       return wkt;
     };
@@ -562,7 +562,7 @@ export default {
   font-size: 26px;
   font-weight: bold;
   margin-bottom: 25px;
-  color: #4a4f37;
+  color: #3E5C44;
 }
 
 .actions-top {
@@ -574,7 +574,7 @@ export default {
 
 .btn-add {
   padding: 10px 18px;
-  background: #4a4f37;
+  background: #4C7840;
   color: white;
   border: none;
   border-radius: 25px;
@@ -583,20 +583,20 @@ export default {
 }
 
 .btn-add:hover {
-  background: #3c4030;
+  background: #3E5C44;
 }
 
 /* Tabla */
 .grid-header, .grid-row {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   padding: 12px;
   text-align: center;
   align-items: center;
 }
 
 .grid-header {
-  background: #52563f;
+  background: #3E5C44;
   color: rgb(255, 255, 255);
   border-radius: 6px;
   font-weight: bold;
@@ -612,7 +612,7 @@ export default {
 .grid-header-norec,
 .grid-row-norec {
   display: grid;
-  grid-template-columns: repeat(5, 1fr); /* 5 columnas iguales */
+  grid-template-columns: repeat(4, 1fr);
   padding: 12px;
   text-align: center;
   align-items: center;
@@ -620,7 +620,7 @@ export default {
 }
 
 .grid-header-norec {
-  background: #52563f;
+  background: #3E5C44;
   color: white;
   border-radius: 6px;
   font-weight: bold;
@@ -646,7 +646,7 @@ export default {
 }
 
 .grid-header-problematic {
-  background: #52563f;
+  background: #3E5C44;
   color: white;
   border-radius: 6px;
   font-weight: bold;
@@ -677,7 +677,7 @@ export default {
 }
 
 .grid-header-density {
-  background: #52563f;
+  background: #3E5C44;
   color: rgb(255, 255, 255);
   border-radius: 6px;
   font-weight: bold;
@@ -738,9 +738,9 @@ export default {
 .modal h2 {
   font-size: 22px;
   font-weight: 600;
-  color: #4a4f37;
+  color: #3E5C44;
   margin-bottom: 20px;
-  border-bottom: 2px solid #e2e6d5;
+  border-bottom: 2px solid #F0F3E7;
   padding-bottom: 8px;
 }
 
@@ -807,12 +807,12 @@ export default {
 }
 
 .scrollable-table {
-  max-height: 300px; /* Ajusta la altura máxima según lo que necesites */
+  max-height: 300px;
   overflow-y: auto;  /* Muestra el scroll cuando la tabla sea más alta que el contenedor */
 }
 
 .btn-mass-update {
-  background-color: #4a4f37;
+  background-color: #4C7840;
   color: white;
   padding: 10px 18px;
   border-radius: 25px;
@@ -821,7 +821,7 @@ export default {
   font-weight: 500;
 }
 .btn-mass-update:hover {
-  background-color: #3c4030;
+  background-color: #3E5C44;
 }
 
 .modal-overlay {
@@ -853,7 +853,7 @@ export default {
 
 .contenedores-title {
   font-weight: 600;
-  color: #4a4f37;
+  color: #3E5C44;
   margin-bottom: 8px;
   font-size: 15px;
 }
