@@ -66,5 +66,10 @@ export default {
     // Actualizar el estado de la ruta
     updateRouteStatus(routeId, status) {
         return api.put(`/api/route/status/${routeId}/${status}`);
+    },
+
+    // Obtener el path generado dinámicamente
+    getGeneratedPath(routeId) {
+        return api.get(`/api/route/${routeId}/path`);
     }
 };

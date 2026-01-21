@@ -22,7 +22,7 @@ public class RouteRepository {
     }
 
     // Consulta SQL N°1 - Lab. 2: Generación de Geometría de Ruta
-    // Crea una nueva ruta generando automáticamente la geometría del trayecto
+    // Crea una nueva ruta generando automáticamente la geometría del trayecto.
     // uniendo los puntos de los contenedores en orden de visita mediante ST_MakeLine.
     // Entrada: RouteEntity con metadatos y List<String> con puntos en formato WKT "POINT(lng lat)".
     // Salida: RouteEntity persistida con su ID y geometría generada.
@@ -35,7 +35,7 @@ public class RouteRepository {
         String sql = """
         INSERT INTO route (
             id_driver, date_, start_time, end_time,
-            route_status, id_central, id_central_finish, trayecto
+            route_status, id_central, id_central_finish, path
         )
         VALUES (
             :id_driver, :date_, :start_time, :end_time,
@@ -65,7 +65,7 @@ public class RouteRepository {
 
     // Explicación en palabras de la sentencia SQL:
     /*
-    1. La sentencia realiza un INSERT donde el valor de la columna `trayecto` se calcula dinámicamente mediante una subconsulta escalar.
+    1. La sentencia realiza un INSERT donde el valor de la columna `path` se calcula dinámicamente mediante una subconsulta escalar.
     2. `string_to_array(:puntosString, '|')` convierte la cadena recibida de Java en un arreglo nativo de PostgreSQL, y `unnest()` expande ese arreglo en filas individuales.
     3. `ST_GeomFromText(p, 4326)` procesa cada fila de texto (WKT) para convertirla en un objeto geométrico de tipo punto con el sistema de referencia espacial WGS84.
     4. `ST_MakeLine(...)` funciona como una función de agregación geoespacial que conecta todos los puntos generados en el orden exacto de la lista, conformando el objeto `LineString` final.
@@ -135,7 +135,7 @@ public class RouteRepository {
             route_status,
             id_central,
             id_central_finish,
-            ST_AsText(trayecto) AS trayecto
+            ST_AsText(path) AS path
         FROM route
         WHERE id = :id
     """;
@@ -161,7 +161,7 @@ public class RouteRepository {
             route_status,
             id_central,
             id_central_finish,
-            ST_AsText(trayecto) AS trayecto
+            ST_AsText(path) AS path
         FROM route
         WHERE id_driver = :id_driver
           AND route_status = :status
@@ -186,7 +186,7 @@ public class RouteRepository {
             route_status,
             id_central,
             id_central_finish,
-            ST_AsText(trayecto) AS trayecto
+            ST_AsText(path) AS path
         FROM route
     """;
 
@@ -207,7 +207,7 @@ public class RouteRepository {
             route_status,
             id_central,
             id_central_finish,
-            ST_AsText(trayecto) AS trayecto
+            ST_AsText(path) AS path
         FROM route
         WHERE id_driver = :id_driver
           AND route_status = 'Pendiente'
@@ -231,7 +231,7 @@ public class RouteRepository {
             route_status,
             id_central,
             id_central_finish,
-            ST_AsText(trayecto) AS trayecto
+            ST_AsText(path) AS path
         FROM route
         WHERE id_driver = :id_driver
           AND route_status = 'Finalizada'
@@ -578,6 +578,46 @@ public class RouteRepository {
             System.err.println("Error al calcular el kilometraje de la ruta " + routeId + ": " + e.getMessage());
             // En caso de error, devolvemos 0.0 para no romper el frontend
             return 0.0;
+        }
+    }
+
+    public String getGeneratedPath(Long routeId) {
+        String sql = """
+            WITH puntos_ruta AS (
+                -- Punto de Inicio (Central de salida)
+                SELECT 0 as orden, c.location
+                FROM route r
+                JOIN central c ON r.id_central = c.id
+                WHERE r.id = :routeId
+                
+                UNION ALL
+                
+                -- Puntos intermedios (Contenedores)
+                -- Usamos rc.id para respetar el orden de inserción/recolección
+                SELECT rc.id as orden, cont.location
+                FROM route_container rc
+                JOIN container cont ON rc.id_container = cont.id
+                WHERE rc.id_route = :routeId
+                
+                UNION ALL
+                
+                -- Punto Final (Central de llegada)
+                SELECT 999999999 as orden, c.location
+                FROM route r
+                JOIN central c ON r.id_central_finish = c.id
+                WHERE r.id = :routeId
+            )
+            SELECT ST_AsText(ST_MakeLine(location ORDER BY orden))
+            FROM puntos_ruta
+        """;
+
+        try (Connection conn = sql2o.open()) {
+            return conn.createQuery(sql)
+                    .addParameter("routeId", routeId)
+                    .executeScalar(String.class);
+        } catch (Exception e) {
+            System.err.println("Error al generar el trayecto de la ruta " + routeId + ": " + e.getMessage());
+            return null;
         }
     }
 

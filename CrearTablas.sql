@@ -52,7 +52,7 @@ CREATE TABLE route (
                        route_status VARCHAR(50) NOT NULL,
                        id_central BIGINT REFERENCES central(id) ON DELETE SET NULL,
                        id_central_finish BIGINT REFERENCES central(id) ON DELETE SET NULL,
-					   trayecto GEOMETRY(LineString, 4326)
+                       path GEOMETRY(LineString, 4326)
 );
 
 CREATE TABLE route_container (

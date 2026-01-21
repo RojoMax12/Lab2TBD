@@ -12,7 +12,7 @@ public class RouteEntity {
     private String route_status;
     private Long id_central;
     private Long id_central_finish;
-    private String trayecto;
+    private String path;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -35,8 +35,8 @@ public class RouteEntity {
     public Long getId_central_finish() { return id_central_finish; }
     public void setId_central_finish(Long id_central_finish) { this.id_central_finish = id_central_finish; }
 
-    public String getTrayecto() { return trayecto; }
-    public void setTrayecto(String trayecto) { this.trayecto = trayecto; }
+    public String getPath() { return path; }
+    public void setPath(String path) { this.path = path; }
 
     @Override
     public String toString() {

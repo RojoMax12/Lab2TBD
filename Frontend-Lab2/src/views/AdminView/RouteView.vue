@@ -178,10 +178,15 @@
   </div>
 
   <!-- ============================
-        MAPA PARA VER RUTA
+        MODAL MAPA PARA VER RUTA
   ============================ -->
-  <div v-if="mostrarMapa" class="map-container">
-    <div id="map" style="height: 500px; width: 100%; border: 1px solid #ccc;"></div>
+  <div v-if="mostrarMapa" class="map-overlay" @click.self="cerrarMapa">
+    <div class="map-close-button-container">
+      <button class="close-map-button" @click="cerrarMapa">Cerrar X</button>
+    </div>
+    <div class="map-modal">
+      <div id="map" style="height: 100%; width: 100%;"></div>
+    </div>
   </div>
 
 </template>
@@ -247,44 +252,113 @@ const mostrarMapa = ref(false)
 let map = null
 let routeLayer = null
 
-function initMap() {
-  map = L.map('map').setView([-33.45, -70.66], 12)
+// Definir íconos personalizados
+const startIcon = L.icon({
+    iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
-  }).addTo(map)
+const endIcon = L.icon({
+    iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
 
-  routeLayer = L.layerGroup().addTo(map)
-}
+const containerIcon = L.icon({
+    iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
 
-function verRuta(ruta) {
-  if (!ruta.trayecto) {
-    alert('La ruta no tiene trayecto')
-    return
-  }
 
-  const coords = parseWKTLineString(ruta.trayecto)
-  if (!coords.length) {
-    alert('Trayecto inválido')
-    return
-  }
+// La función initMap ya no es necesaria como una función separada; su lógica se integrará en verRuta
+// function initMap() {
+//   map = L.map('map').setView([-33.45, -70.66], 12)
 
-  // Mostrar el div del mapa
-  mostrarMapa.value = true
+//   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+//     attribution: '© OpenStreetMap'
+//   }).addTo(map)
 
-  // Esperar a que Vue renderice el div #map
-  nextTick(() => {
-    // Inicializar Leaflet solo si no está inicializado
-    if (!map) {
-      initMap()
-    } else {
-      routeLayer.clearLayers()
+//   routeLayer = L.layerGroup().addTo(map)
+// }
+
+
+async function verRuta(ruta) {
+  try {
+    const pathRes = await routeServices.getGeneratedPath(ruta.id);
+    const pathWKT = pathRes.data;
+
+    if (!pathWKT) {
+      alert('No se pudo generar el path para esta ruta.');
+      return;
     }
 
-    // Dibujar la ruta
-    const polyline = L.polyline(coords, { color: 'blue', weight: 5 }).addTo(routeLayer)
-    map.fitBounds(polyline.getBounds())
-  })
+    const coords = parseWKTLineString(pathWKT);
+    if (coords.length < 2) {
+      alert('El path generado es inválido (menos de 2 puntos).');
+      return;
+    }
+
+    mostrarMapa.value = true;
+
+    await nextTick();
+
+    if (!map) {
+      map = L.map('map').setView([-33.45, -70.66], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+      routeLayer = L.layerGroup().addTo(map);
+    } else {
+      routeLayer.clearLayers();
+    }
+
+    const polyline = L.polyline(coords, { color: '#304BA6', weight: 5 }).addTo(routeLayer);
+    map.fitBounds(polyline.getBounds());
+
+    // Marcador de inicio (primera central)
+    const centralInicio = centrales.value.find(c => c.id === ruta.id_central);
+    if (centralInicio) {
+      const point = parseWKTPoint(centralInicio.location);
+      L.marker([point.lat, point.lng], { icon: startIcon })
+        .addTo(routeLayer)
+        .bindPopup(`Inicio: ${centralInicio.name}`);
+    }
+
+    // Marcador de fin (segunda central)
+    const centralFin = centrales.value.find(c => c.id === ruta.id_central_finish);
+    if (centralFin) {
+      const point = parseWKTPoint(centralFin.location);
+      L.marker([point.lat, point.lng], { icon: endIcon })
+        .addTo(routeLayer)
+        .bindPopup(`Fin: ${centralFin.name}`);
+    }
+    
+    // Marcadores para los contenedores
+    const contenedoresDeRuta = contenedores.value.filter(c => ruta.contenedores.includes(c.id));
+    contenedoresDeRuta.forEach(co => {
+      const point = parseWKTPoint(co.location);
+      if (point.lat !== null && point.lng !== null) {
+        L.marker([point.lat, point.lng], { icon: containerIcon })
+          .addTo(routeLayer)
+          .bindPopup(`Contenedor ID: ${co.id}`);
+      }
+    });
+
+  } catch (error) {
+    console.error("Error al obtener o procesar el path:", error);
+    alert("No se pudo mostrar la ruta completa.");
+  }
 }
 
 function eliminarRuta(id) {
@@ -302,6 +376,16 @@ function eliminarRuta(id) {
 function cerrarModal() {
   mostrarModal.value = false
 }
+
+// Nueva función para cerrar el modal del mapa
+function cerrarMapa() {
+  mostrarMapa.value = false;
+  if (map) {
+    map.remove(); // Destruye la instancia del mapa para liberar recursos y evitar problemas
+    map = null;   // Resetea la variable del mapa
+  }
+}
+
 
 // Función para extraer coordenadas de un WKT POINT
 function parseWKTPoint(wkt) {
@@ -483,11 +567,7 @@ async function fetchContenedores() {
     // 1. Obtener la lista base (manejo de casos Array o { data: Array })
     const allContenedores = Array.isArray(res) ? res : (res.data || []);
 
-    const contenedoresDisponibles = allContenedores.filter(contenedor => {
-      return contenedor.status === "Disponible"; 
-    });
-
-    contenedores.value = contenedoresDisponibles;
+    contenedores.value = allContenedores;
 
   } catch (e) {
     console.warn('Could not load contenedores:', e);
@@ -804,6 +884,63 @@ onMounted(() => {
 
 .btn-view:hover {
   background-color: #4c553a;
+}
+
+/* Nuevos estilos para el modal del mapa */
+.map-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6); /* Slightly darker overlay for map */
+  backdrop-filter: blur(5px);
+  display: flex;
+  flex-direction: column; /* Stack items vertically */
+  align-items: center; /* Align items back to center */
+  justify-content: center;
+  z-index: 3000; /* Higher z-index than other modals if any */
+  gap: 15px; /* Space between button and map modal */
+}
+
+.map-modal {
+  background: #fff;
+  padding: 10px;
+  border-radius: 12px;
+  width: 90%; /* Adjust as needed */
+  max-width: 1000px; /* Max width for the map */
+  height: 80%; /* Adjusted to leave space for button above */
+  max-height: 650px; /* Adjusted to leave space for button above */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  position: relative;
+  animation: fadeIn 0.3s ease;
+}
+
+.close-map-button {
+  /* No longer absolute position relative to map-modal, but part of flex column */
+  background: #d1655d;
+  color: white;
+  border: none;
+  border-radius: 25px; /* Pill shape */
+  padding: 10px 20px; /* Padding for text */
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 3001; /* Still high z-index */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.close-map-button:hover {
+  background: #b84e47;
+  transform: scale(1.05);
+}
+
+.map-close-button-container {
+  width: 90%; /* Match the width of .map-modal */
+  max-width: 1000px; /* Match the max-width of .map-modal */
+  display: flex;
+  justify-content: flex-end; /* Align button to the right */
+  /* padding-right: 10px; */ /* Optional: Add some padding if the button is too close to the edge */
 }
 
 </style>

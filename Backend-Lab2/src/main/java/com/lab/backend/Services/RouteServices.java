@@ -141,4 +141,8 @@ public class RouteServices {
         return routeRepository.calculateRouteDistance(id);
     }
 
+    public String getGeneratedPath(Long id) {
+        return routeRepository.getGeneratedPath(id);
+    }
+
 }

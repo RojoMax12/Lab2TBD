@@ -124,4 +124,14 @@ public class RouteController {
         return ResponseEntity.ok(km);
     }
 
+    @GetMapping("/{id}/path")
+    public ResponseEntity<String> getGeneratedPath(@PathVariable Long id) {
+        String path = routeService.getGeneratedPath(id);
+        if (path != null) {
+            return ResponseEntity.ok(path);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
 }
