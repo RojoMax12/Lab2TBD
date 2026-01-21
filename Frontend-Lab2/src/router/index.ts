@@ -15,6 +15,7 @@ import CentralView from '@/views/AdminView/CentralView.vue'
 import ServicesView from '../views/ServicesView.vue'
 import ContactView from '../views/ContactView.vue'
 import WhoWeAreView from '@/views/WhoWeAreView.vue'
+import OutOfZoneView from '../views/AdminView/OutOfZoneView.vue'
  
 
 
@@ -35,7 +36,7 @@ const router = createRouter({
     { path: '/services', name: 'services', component: ServicesView},
     { path: '/contact', name: 'contact', component: ContactView},
     { path: '/whoweare', name: 'whoweare', component: WhoWeAreView},
-
+    { path: '/OutOfZone', name: 'outofzone', component: OutOfZoneView, meta: { requiresAuth: true}},
   ]
 })
 

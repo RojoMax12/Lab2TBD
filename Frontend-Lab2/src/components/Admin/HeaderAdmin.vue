@@ -2,7 +2,6 @@
   <header class="admin-header">
     <div class="admin-left">
 
-      <!-- Botón menú -->
       <button class="menu-btn" @click="showSidebar = true" aria-label="Abrir menú">
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
           <circle cx="14" cy="14" r="14" fill="#f7f7f7"/>
@@ -14,7 +13,6 @@
 
       <img src="/logo.png" alt="Admin" class="admin-avatar" />
 
-      <!-- Muestra nombre y apellido -->
       <span class="admin-name">{{ fullName }}</span>
     </div>
 
@@ -23,7 +21,6 @@
     </button>
   </header>
 
-  <!-- Sidebar -->
   <aside class="sidebar" v-if="showSidebar">
     <div class="sidebar-header">
       <span class="sidebar-title">Menú</span>
@@ -34,10 +31,11 @@
       <a class="sidebar-link" @click="home()">Inicio</a>
       <a class="sidebar-link" @click="container()">Contenedores</a>
       <a class="sidebar-link" @click="users()">Conductores</a>
-      <a class="sidebar-link" @click="admins()">Adminstradores</a>
+      <a class="sidebar-link" @click="admins()">Administradores</a>
       <a class="sidebar-link" @click="centrals()">Centrales</a>
       <a class="sidebar-link" @click="rutas()">Rutas</a>
       <a class="sidebar-link" @click="collectionzones()">Zonas de Recolección</a>
+      <a class="sidebar-link" @click="outOfZone()">Contenedores fuera de zona</a>
     </nav>
   </aside>
 
@@ -47,7 +45,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../stores/auth'
+import { useAuthStore } from '../../stores/auth' // Asegúrate que esta ruta sea correcta en tu proyecto
 import { jwtDecode } from "jwt-decode"
 import AdminServices from '@/services/adminservices'
 
@@ -60,7 +58,7 @@ const name = ref('')
 const lastname = ref('')
 
 /* ============================
-     DECODIFICAR TOKEN
+      DECODIFICAR TOKEN
 ============================ */
 onMounted(() => {
   const token = localStorage.getItem('jwt')
@@ -69,11 +67,10 @@ onMounted(() => {
 
   try {
     const decoded = jwtDecode(token)
-
     userEmail.value = decoded.sub || decoded.email || null
 
     if (userEmail.value != null) {
-      getAdminData(userEmail.value)   // <--- OBTENER NOMBRE Y APELLIDO
+      getAdminData(userEmail.value)
     }
   } catch (error) {
     console.error("Error al decodificar token:", error)
@@ -86,11 +83,8 @@ onMounted(() => {
 async function getAdminData(email) {
     try {
         const response = await AdminServices.getAdminByEmail(email)
-
-        // Asegúrate de que la respuesta tenga los campos correctos
         const admin = response.data
     
-
         name.value = admin.name
         lastname.value = admin.last_name
     } catch (err) {
@@ -147,11 +141,6 @@ function centrals() {
   router.push({ name: 'centrals' })
 }
 
-function collectionzones() {
-  showSidebar.value = false
-  router.push({ name: 'collectionzones' })
-}
-
 </script>
 
 <style scoped>
@@ -173,7 +162,6 @@ function collectionzones() {
   padding: 0.75rem 1.25rem;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  /* Make admin header fixed so it stays visible while scrolling */
   position: static;
   top: 0;
   left: 0;
@@ -295,6 +283,7 @@ function collectionzones() {
   padding: 0.6rem 1rem;
   border-radius: 8px;
   transition: background 0.18s;
+  cursor: pointer; /* IMPORTANTE: Para que se vea la manito al pasar el mouse */
 }
 
 .sidebar-link:hover {
