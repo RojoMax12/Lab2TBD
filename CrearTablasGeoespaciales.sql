@@ -72,3 +72,13 @@ CREATE TABLE public.regiones (
     st_length_ double precision,
     region character varying(60)
 );
+
+-- Índice para buscar comunas rápido
+CREATE INDEX IF NOT EXISTS idx_comunas_geom ON comunas USING GIST (geom);
+
+-- Índice para buscar calles cercanas rápido (KNN)
+CREATE INDEX IF NOT EXISTS idx_calles_geom ON calles USING GIST (geom);
+
+-- Índices para tus contenedores y zonas
+CREATE INDEX IF NOT EXISTS idx_container_location ON container USING GIST (location);
+CREATE INDEX IF NOT EXISTS idx_zones_location ON collection_zone USING GIST (location);

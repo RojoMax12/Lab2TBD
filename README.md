@@ -172,7 +172,7 @@ npm run dev
 
 1. **Generación de Geometría de Ruta:** Durante el procedimiento de creación de rutas, se genera automáticamente el LINESTRING que une los contenedores asignados en orden de visita usando ST_MakeLine. Dicho LINESTRING puede ser visualizado desde la vista de administrado en `Menú -> Rutas -> Rutas Planificadas -> Ver Ruta`. Desde la vista de conductor se ve el respectivo mapa de la ruta asignada en `Menú -> Inicio`.
 
-2. **Cálculo de Kilometraje:** Durante la creación de la ruta, se calcula la distancia total estimada de cada ruta planificada usando ST_Length(trayecto::geography).
+2. **Cálculo de Kilometraje:** Durante la creación de la ruta, se calcula la distancia total estimada de cada ruta planificada usando ST_Length(trayecto::geography). El resultado se encuentra, para cada ruta respectivamente, desde la vista de administrado en `Menú -> Rutas -> Rutas Planificadas -> Ver Ruta -> Detalles de la Ruta`.
 
 3. **Contenedores fuera de Zona:** Se identifican contenedores cuya ubicación (POINT) caiga erróneamente fuera de los polígonos de zonas_recoleccion asignados. Para visualizar las Zonas de Recolección desde la vista de administador se sigue el flujo de `Menú -> Zonas de Recolección -> Zonas Existentes`. Para visualizar aquellos contenedores fuera de las Zonas de Recolección, como administrador: `Menú -> Contenedores fuera de zona`.
 
