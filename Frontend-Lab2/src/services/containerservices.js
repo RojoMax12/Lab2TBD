@@ -36,10 +36,12 @@ export default {
 
     getContainersOutsideZone() {
         return api.get('/api/containers/outside-zone');
-    }
-,
+    },
     getNearestContainer(lon, lat) {
         return api.get(`/api/containers/nearest?lon=${encodeURIComponent(lon)}&lat=${encodeURIComponent(lat)}`);
+    },
+    getNearestContainerByLocation(locationWkt) {
+        return api.get(`/api/containers/nearest?location=${encodeURIComponent(locationWkt)}`);
     }
 
 };

@@ -60,5 +60,10 @@ public class ContainerServices {
             return containerRepository.findNearestContainer(lon, lat);
         }
     
+        // Servicio para obtener el contenedor más cercano a una geometría WKT
+        public ContainerEntity findNearestContainerByWkt(String wkt) {
+            return containerRepository.findNearestContainerByWkt(wkt);
+        }
+    
     }
     

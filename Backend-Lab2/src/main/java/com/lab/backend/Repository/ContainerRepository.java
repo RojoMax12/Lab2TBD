@@ -269,4 +269,19 @@ public class ContainerRepository {
             throw new RuntimeException("No se pudo obtener el contenedor más cercano", e);
         }
     }
+
+    // Buscar contenedor más cercano dado un WKT (ej: 'POINT(lon lat)')
+    public ContainerEntity findNearestContainerByWkt(String wkt) {
+        String sql = "SELECT id, id_waste, ST_AsText(location) as location, weight, status FROM container "
+                + "ORDER BY location <-> ST_SetSRID(ST_GeomFromText(:wkt), 4326) LIMIT 1";
+
+        try (Connection connection = sql2o.open()) {
+            return connection.createQuery(sql)
+                    .addParameter("wkt", wkt)
+                    .executeAndFetchFirst(ContainerEntity.class);
+        } catch (Exception e) {
+            System.err.println("Error al buscar el contenedor más cercano por WKT: " + e.getMessage());
+            throw new RuntimeException("No se pudo obtener el contenedor más cercano", e);
+        }
+    }
 }

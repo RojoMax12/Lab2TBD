@@ -79,6 +79,17 @@
         </div>
         <div class="full-width-box">
           <span class="label">Contenedor cercano</span>
+          <div style="margin-bottom:0.6rem; display:flex; gap:0.5rem; align-items:center;">
+            <div style="flex:1;">
+              <span class="label">Ubicación (WKT)</span>
+              <input class="input" placeholder="POINT(lon lat)" v-model="currentLocation" />
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.4rem;">
+              <button type="button" class="small-action" @click="enablePickLocation" :disabled="pickingLocation">Seleccionar en mapa</button>
+              <button type="button" class="small-action" @click="clearPickedLocation">Limpiar</button>
+            </div>
+          </div>
+
           <div v-if="nearestContainer">
             <input class="value-input" readonly :value="`ID: ${nearestContainer.id} — Estado: ${nearestContainer.status || 'N/A'}`" />
             <div style="margin-top:0.5rem; display:flex; gap:0.5rem;">
@@ -99,7 +110,7 @@
 
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { watch } from 'vue';
 import { jwtDecode } from "jwt-decode";
 import { useRouter } from 'vue-router';
@@ -177,6 +188,52 @@ const router = useRouter();
  
 // Contenedor más cercano encontrado por el backend
 const nearestContainer = ref(null);
+const currentLocation = ref(''); // WKT input: POINT(lon lat)
+const pickingLocation = ref(false);
+let pickedLocationMarker = null;
+let nearestRoutePolyline = null;
+let routeStartMarker = null;
+let routeEndMarker = null;
+
+function parseWktPointString(wkt) {
+  if (!wkt || typeof wkt !== 'string') return null;
+  const t = wkt.trim();
+  if (!t.toUpperCase().startsWith('POINT(')) return null;
+  const inner = t.slice(t.indexOf('(') + 1, t.lastIndexOf(')')).trim();
+  const parts = inner.split(/\s+/);
+  if (parts.length < 2) return null;
+  const lon = Number(parts[0]);
+  const lat = Number(parts[1]);
+  if (Number.isNaN(lon) || Number.isNaN(lat)) return null;
+  return { lat, lng: lon };
+}
+
+function drawRouteBetweenPoints(fromLat, fromLng, toLat, toLng) {
+  try {
+    // remove previous route
+    if (nearestRoutePolyline) {
+      try { nearestRoutePolyline.remove(); } catch(e) {}
+      nearestRoutePolyline = null;
+    }
+    // remove previous route markers
+    try { if (routeStartMarker) { routeStartMarker.remove(); routeStartMarker = null } } catch(e) {}
+    try { if (routeEndMarker) { routeEndMarker.remove(); routeEndMarker = null } } catch(e) {}
+    if (!mapObj.value || fromLat == null || fromLng == null || toLat == null || toLng == null) return;
+    const latlngs = [[fromLat, fromLng], [toLat, toLng]];
+    nearestRoutePolyline = L.polyline(latlngs, { color: '#2ecc71', weight: 4, dashArray: '6 6', opacity: 0.95 });
+    nearestRoutePolyline.addTo(polylineLayer.value || mapObj.value);
+    // add start/end markers
+    try {
+      routeStartMarker = L.circleMarker([fromLat, fromLng], { radius:7, color: '#2d8cff', fillColor:'#2d8cff', fillOpacity:0.95 }).addTo(markersLayer.value || mapObj.value);
+      routeStartMarker.bindPopup('<strong>Inicio</strong>');
+    } catch(e) { /* ignore */ }
+    try {
+      routeEndMarker = L.circleMarker([toLat, toLng], { radius:7, color: '#ff6b6b', fillColor:'#ff6b6b', fillOpacity:0.95 }).addTo(markersLayer.value || mapObj.value);
+      routeEndMarker.bindPopup('<strong>Destino</strong>');
+    } catch(e) { /* ignore */ }
+    try { mapObj.value.fitBounds(nearestRoutePolyline.getBounds(), { padding: [40,40] }); } catch(e) { /* ignore */ }
+  } catch(e) { console.warn('Error dibujando ruta cercana', e) }
+}
 
 
 onMounted(() => {
@@ -394,9 +451,9 @@ function computeMarkers() {
 function initMap() {
   try {
     if (!mapElement.value) return
-    // determine initial center
-    let centerLat = 0
-    let centerLng = 0
+    // determine initial center (fallback to Santiago centro)
+    let centerLat = -33.45
+    let centerLng = -70.66
     if (centralStart.value && centralStart.value.coord_y && centralStart.value.coord_x) {
       centerLat = Number(centralStart.value.coord_y)
       centerLng = Number(centralStart.value.coord_x)
@@ -417,6 +474,45 @@ function initMap() {
   } catch (e) {
     console.warn('Error inicializando mapa', e)
   }
+}
+
+// Handler para elegir un punto en el mapa como ubicación actual
+function onMapClickPick(e) {
+  if (!pickingLocation.value) return;
+  const lat = e.latlng.lat;
+  const lng = e.latlng.lng;
+  // Formatear WKT como POINT(lon lat)
+  currentLocation.value = `POINT(${lng.toFixed(6)} ${lat.toFixed(6)})`;
+  // colocar marcador de referencia
+  try {
+    if (pickedLocationMarker) { pickedLocationMarker.remove(); pickedLocationMarker = null }
+    pickedLocationMarker = L.circleMarker([lat, lng], { radius:6, color: '#2ecc71', fillColor:'#2ecc71', fillOpacity:0.9 }).addTo(markersLayer.value || mapObj.value)
+    pickedLocationMarker.bindPopup('Ubicación seleccionada').openPopup()
+  } catch(e) { /* ignore */ }
+  // opcional: desactivar modo picking automáticamente
+  pickingLocation.value = false;
+  try { if (mapObj.value) mapObj.value.off('click', onMapClickPick) } catch(e) {}
+}
+
+function enablePickLocation() {
+  pickingLocation.value = true;
+  if (mapObj.value) mapObj.value.on('click', onMapClickPick)
+}
+
+function disablePickLocation() {
+  pickingLocation.value = false;
+  if (mapObj.value) mapObj.value.off('click', onMapClickPick)
+}
+
+function clearPickedLocation() {
+  currentLocation.value = '';
+  try { if (pickedLocationMarker) { pickedLocationMarker.remove(); pickedLocationMarker = null } } catch(e) {}
+  try { if (nearestRoutePolyline) { nearestRoutePolyline.remove(); nearestRoutePolyline = null } } catch(e) {}
+  try { if (routeStartMarker) { routeStartMarker.remove(); routeStartMarker = null } } catch(e) {}
+  try { if (routeEndMarker) { routeEndMarker.remove(); routeEndMarker = null } } catch(e) {}
+  // limpiar contenedor seleccionado y redibujar mapa base
+  nearestContainer.value = null;
+  try { renderMap() } catch(e) { /* ignore */ }
 }
 
 // Render containers and route on the map
@@ -485,6 +581,14 @@ function renderMap() {
   }
 }
 
+onUnmounted(() => {
+  try { if (mapObj.value) mapObj.value.off('click', onMapClickPick) } catch(e) {}
+  try { if (pickedLocationMarker) { pickedLocationMarker.remove(); pickedLocationMarker = null } } catch(e) {}
+  try { if (nearestRoutePolyline) { nearestRoutePolyline.remove(); nearestRoutePolyline = null } } catch(e) {}
+  try { if (routeStartMarker) { routeStartMarker.remove(); routeStartMarker = null } } catch(e) {}
+  try { if (routeEndMarker) { routeEndMarker.remove(); routeEndMarker = null } } catch(e) {}
+})
+
 // Recalcular marcadores cuando cambien containersData, centralStart o centralFinish
 watch([containersData, centralStart, centralFinish], () => { computeMarkers(); renderMap(); })
 
@@ -505,6 +609,41 @@ function handleMarkerClick(m) {
 // Buscar el contenedor más cercano usando el servicio del backend
 async function findNearest() {
   try {
+    // Si el usuario ingresó un WKT en el input, usarlo
+    if (currentLocation.value && typeof currentLocation.value === 'string' && currentLocation.value.trim().toUpperCase().startsWith('POINT')) {
+      try {
+        const resp = await ContainerServices.getNearestContainerByLocation(currentLocation.value.trim());
+        if (resp && resp.data) {
+          nearestContainer.value = resp.data;
+          try {
+            const parsed = getCoordsFromContainer(resp.data);
+            if (parsed && parsed.lat != null && parsed.lng != null) {
+              nearestContainer.value.coord_y = parsed.lat;
+              nearestContainer.value.coord_x = parsed.lng;
+              if (mapObj.value) mapObj.value.setView([parsed.lat, parsed.lng], 16);
+            }
+          } catch(e) { /* ignore */ }
+          // dibujar ruta desde la ubicación ingresada hasta el contenedor encontrado
+          try {
+            const userPt = parseWktPointString(currentLocation.value.trim());
+            const destPt = { lat: nearestContainer.value.coord_y, lng: nearestContainer.value.coord_x };
+            if (userPt && destPt.lat != null && destPt.lng != null) {
+              drawRouteBetweenPoints(userPt.lat, userPt.lng, Number(destPt.lat), Number(destPt.lng));
+            }
+          } catch(e) { /* ignore */ }
+          return;
+        } else {
+          nearestContainer.value = null;
+          alert('No se encontró contenedor cercano para la ubicación ingresada');
+          return;
+        }
+      } catch (e) {
+        console.error('Error buscando por location WKT', e);
+        alert('Error buscando contenedor por la ubicación ingresada');
+        return;
+      }
+    }
+
     let lat = null;
     let lng = null;
     if (mapObj.value) {
@@ -540,6 +679,10 @@ async function findNearest() {
       const cx = nearestContainer.value.coord_x;
       if (mapObj.value && cy != null && cx != null) {
         try { mapObj.value.setView([Number(cy), Number(cx)], 16); } catch(e) { /* ignore */ }
+        // si la búsqueda se hizo con el centro del mapa o coordenadas, dibujar la ruta
+        try {
+          drawRouteBetweenPoints(Number(lat), Number(lng), Number(cy), Number(cx));
+        } catch(e) { /* ignore */ }
       }
     } else {
       nearestContainer.value = null;
@@ -736,10 +879,10 @@ function routeAssigned() {
 .container {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
   width: 100%;
   max-width: 1200px;
-  margin: 2rem auto;
+  margin: 1.5rem auto;
 }
 
 .value-input {
@@ -781,13 +924,13 @@ function routeAssigned() {
   justify-content: center;
   align-items: center;
   min-width: 320px;
-  transform: translateY(120px);
-
+  transform: translateY(70px);
+  height: 800px;
 }
 
 .map-container img {
   max-width: 100%;
-  height: auto;
+  height: 100%;
   border-radius: 1rem;
   box-shadow: 0 2px 8px rgba(78,83,54,0.08);
   border: 1px solid #eaeaea;
@@ -795,7 +938,7 @@ function routeAssigned() {
 
 .map-inner { position: relative; display: block; width: 100%; }
 .map-image { display: block; width: 100%; height: auto; border-radius: 1rem; }
-.driver-map { width: 100%; height: 520px; border-radius: 1rem; }
+.driver-map { width: 100%; height: 750px; border-radius: 1rem; }
 .marker {
   position: absolute;
   width: 20px;
@@ -888,6 +1031,14 @@ function routeAssigned() {
 
 .small-action:hover { background: #f2f2f2; }
 
+.pick-indicator {
+  background: #2ecc71;
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.4rem;
+  font-size: 0.85rem;
+}
+
 .info-panel {
   background: #f7f7f7;
   border-radius: 1.2rem;
@@ -895,7 +1046,8 @@ function routeAssigned() {
   padding: 2rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: 1rem;
+  height: 1000px;
 }
 
 .grid {
