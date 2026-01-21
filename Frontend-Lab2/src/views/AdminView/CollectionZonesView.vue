@@ -2,51 +2,60 @@
   <div>
     <HomeAdminView />
 
-    <div class="container-routes collection-zones-view">
-      <h1 class="title">Zonas de Recolección</h1>
-      <div class="map-box">
-        <div id="map-zones" style="height: 100%; width: 100%;"></div>
+    <div class="dashboard-layout">
+
+      <div class="left-panel">
+        <h1 class="title">Zonas de Recolección</h1>
+        <div class="map-box">
+          <div id="map-zones"></div>
+        </div>
       </div>
-    </div>
 
-    <div class="funcionalidades">
-      <h2>Funcionalidades</h2>
+      <div class="right-panel">
+        <div class="funcionalidades">
+          <h2>Funcionalidades</h2>
 
-      <div class="func-panel">
-        <form @submit.prevent="isEditing ? updateZone() : createZone()" class="zone-form">
-          <label>Nombre</label>
-          <input v-model="zoneForm.name" class="input" placeholder="Nombre de la zona" />
+          <div class="func-panel">
 
-          <div style="display:flex; gap:8px; align-items:center;">
-            <button type="button" class="btn-small" @click="startDrawing" v-if="!drawing">Dibujar zona</button>
-            <button type="button" class="btn-small" @click="finishDrawing" v-if="drawing">Finalizar dibujo</button>
-            <button type="button" class="btn-small danger" @click="cancelDrawing" v-if="drawing">Cancelar dibujo</button>
-            <small style="color:#666; margin-left:8px">O pega WKT en el campo si ya lo tienes</small>
-          </div>
+            <form @submit.prevent="isEditing ? updateZone() : createZone()" class="zone-form">
+              <label>Nombre</label>
+              <input v-model="zoneForm.name" class="input" placeholder="Nombre de la zona" />
 
-          <label>WKT (POLYGON)</label>
-          <textarea v-model="zoneForm.location" rows="3" class="input" placeholder="POLYGON((lng lat, lng lat, ...))"></textarea>
-
-          <div class="form-actions">
-            <button class="btn-save" type="submit">{{ isEditing ? 'Guardar cambios' : 'Crear zona' }}</button>
-            <button class="btn-cancel" type="button" @click="resetForm">Limpiar</button>
-          </div>
-        </form>
-
-        <div class="zone-list">
-          <h3>Zonas existentes</h3>
-          <ul>
-            <li v-for="z in zones" :key="z.id" class="zone-item">
-              <div class="zone-meta">
-                <strong>{{ z.name }}</strong>
-                <div class="zone-actions">
-                  <button @click="editZone(z)" class="btn-small">Editar</button>
-                  <button @click="deleteZone(z.id)" class="btn-small danger">Eliminar</button>
-                </div>
+              <div class="draw-controls">
+                <button type="button" class="btn-small" @click="startDrawing" v-if="!drawing"><LuSquareDashedMousePointer class="draw-icon" /> Dibujar zona</button>
+                <button type="button" class="btn-small" @click="finishDrawing" v-if="drawing">Finalizar</button>
+                <button type="button" class="btn-small danger" @click="cancelDrawing" v-if="drawing">Cancelar</button>
               </div>
-              <div class="zone-wkt">{{ z.location }}</div>
-            </li>
-          </ul>
+              <small v-if="drawing" class="draw-hint">Haz clic en el mapa para trazar puntos</small>
+
+              <label>WKT (POLYGON)</label>
+              <textarea v-model="zoneForm.location" rows="3" class="input" placeholder="POLYGON((...))" readonly></textarea>
+              <small style="color:#555; font-size: 0.8em;">Se llena automáticamente al dibujar</small>
+
+              <div class="form-actions">
+                <button class="btn-save" type="submit"><FlAddSquareMultiple class="icon-spacing" /> {{ isEditing ? 'Guardar cambios' : 'Crear zona' }}</button>
+                <button class="btn-cancel" type="button" @click="resetForm"><CaClean class="icon-spacing" /> Limpiar datos</button>
+              </div>
+            </form>
+
+            <hr class="separator" />
+
+            <div class="zone-list">
+              <h3>Zonas existentes</h3>
+              <div v-if="zones.length === 0" style="color:#777; text-align:center;">No hay zonas creadas</div>
+              <ul>
+                <li v-for="z in zones" :key="z.id" class="zone-item">
+                  <div class="zone-meta">
+                    <strong>{{ z.name }}</strong>
+                    <div class="zone-actions">
+                      <button @click="editZone(z)" class="btn-icon" title="Editar"><BxSolidEditAlt class="edit-icon" /></button>
+                      <button @click="deleteZone(z.id)" class="btn-icon danger" title="Eliminar"><McDelete2Fill class="delete-icon" /></button>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -61,6 +70,7 @@ import 'leaflet/dist/leaflet.css'
 import collectionZoneServices from '@/services/collectionzoneservices'
 import containerServices from '@/services/containerservices'
 import wasteServices from '@/services/wasteservices'
+import { LuSquareDashedMousePointer, BxSolidEditAlt, McDelete2Fill, CaClean, FlAddSquareMultiple } from '@kalimahapps/vue-icons';
 
 const zones = ref([])
 const containers = ref([])
@@ -291,7 +301,7 @@ function finishDrawing() {
 onMounted(async () => {
   await nextTick()
   initMap()
-  if (map) { // Ensure map is initialized before invalidating size
+  if (map) {
     map.invalidateSize();
   }
   try {
@@ -310,8 +320,6 @@ onMounted(async () => {
       console.warn('No se pudieron obtener tipos de residuo', we)
     }
     renderZones()
-    // populate CRUD list
-    // ensure zones are fresh
     await fetchZones()
   } catch (e) {
     console.error('Error cargando zonas o contenedores', e)
@@ -320,51 +328,230 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.collection-zones-view {
-  padding: 1.25rem;
+.dashboard-layout {
+  display: flex;
+  height: calc(100vh - 80px);
+  overflow: hidden;
+  background-color: #F0F3E7;
 }
-.title {
-  font-size: 1.6rem;
-  margin-bottom: 1rem;
-  color: #333;
-  text-align: center; 
+
+/* LADO IZQUIERDO: MAPA */
+.left-panel {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
 }
 
 .map-box {
+  flex: 1;
   background-color: white;
-  padding: 20px;
   border-radius: 10px;
-  width: 80%; /* From original inline style */
-  max-width: 1000px; /* From original inline style */
-  margin: 0 auto; /* From original inline style */
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1); /* Subtle shadow */
-  border: 1px solid #ccc; /* Optional, from original inline style */
-  height: 800px; /* Explicit height for the box itself */
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border: 1px solid #ccc;
+  overflow: hidden;
 }
+
+#map-zones {
+  height: 100%;
+  width: 100%;
+}
+
+.title {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+  color: #3E5C44;
+  text-align: left;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #3E5C44;
+}
+
+/* LADO DERECHO: funcionalidades */
+.right-panel {
+  width: 480px;
+  padding: 10px;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .funcionalidades {
-  padding: 1.25rem;
-  max-width: 1000px;
-  margin: 1.25rem auto;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.06);
   color: #333;
+  padding: 1.25rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
+
+.funcionalidades h2 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #4e5336;
+  padding-bottom: 0.5rem;
+  font-weight: 600;
+}
+
 .func-panel {
   display: flex;
+  flex-direction: column;
   gap: 1rem;
-  align-items: flex-start;
+  flex: 1;
+  overflow: hidden;
 }
-.zone-form { flex: 1; display:flex; flex-direction:column; gap:0.5rem }
-.zone-list { flex: 1; max-height: 380px; overflow:auto }
-.zone-item { padding: 0.5rem; border-bottom: 1px solid #eee }
-.zone-meta { display:flex; justify-content:space-between; align-items:center }
-.zone-wkt { font-size: 12px; color:#666; margin-top:6px }
-.form-actions { display:flex; gap:0.5rem }
-.btn-small { padding:4px 8px; border-radius:6px; border:1px solid #ccc; background: #ccc; cursor:pointer }
-.btn-small.danger { border-color:#e74c3c; color:#e74c3c }
-.btn-save { background:#4e5336; color:#fff; padding:8px 12px; border-radius:8px; border:none }
-.btn-cancel { background:#eee; padding:8px 12px; border-radius:8px; border:none }
-.input { padding:8px; border-radius:6px; border:1px solid #ddd; width:100% }
 
+/* FORMULARIO */
+.zone-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  background-color: #f9f9f9;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.draw-controls {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 5px;
+}
+
+/* LISTA CON SCROLL */
+.zone-list {
+  flex: 1;
+  overflow-y: auto;
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+
+.zone-item {
+  padding: 0.8rem;
+  border-bottom: 1px solid #eee;
+  background: white;
+  margin-bottom: 5px;
+  border-radius: 4px;
+}
+
+.zone-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* BOTONES E INPUTS */
+.input {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc; /* Softer grey */
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.input:focus {
+  outline: none;
+  border-color: #4e5336; /* Primary green on focus */
+  box-shadow: 0 0 0 3px rgba(78, 83, 54, 0.2); /* Subtle green shadow */
+}
+.btn-small {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #4C7840; /* Primary green border */
+  background: #dbe3d4; /* Light green background */
+  color: #4C7840; /* Primary green text */
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.3s, border-color 0.3s;
+}
+.btn-small:hover {
+  background: #c3d1b6; /* Slightly darker light green on hover */
+  border-color: #3e442c;
+}
+.btn-small.danger { border-color: #e74c3c; color: #e74c3c; background: #fff;}
+.btn-save {
+  background: #4C7840; /* Consistent primary green */
+  color: #fff;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  flex: 2;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.btn-save:hover {
+  background: #3e442c; /* Slightly darker green on hover */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.btn-cancel {
+  background: #e0e0e0; /* Neutral gray */
+  border: 1px solid #bbb; /* Darker border */
+  color: #555; /* Darker text */
+  padding: 10px;
+  border-radius: 8px;
+  flex: 1;
+  cursor: pointer;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.btn-cancel:hover {
+  background: #d0d0d0; /* Slightly darker gray on hover */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.btn-icon { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 2px;}
+
+small {
+  color: #555; /* Darker generic small text */
+  font-size: 0.85em; /* Slightly larger than original 0.8em from specific small tags */
+}
+
+.draw-icon {
+  font-size: 1em; /* Adjust as needed */
+  vertical-align: middle; /* Align with text */
+  margin-right: 5px; /* Add some space from text */
+}
+
+.draw-hint {
+  color: #e67e22; /* Keep original orange for now, or use a themed warning color */
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.edit-icon {
+  color: #4C7840; /* Yellow color */
+  font-size: 1.2em;
+}
+
+.delete-icon {
+  color: #c0392b; /* Dark red color */
+  font-size: 1.2em;
+}
+
+.icon-spacing {
+  vertical-align: middle;
+  font-size: 1.2rem;
+  margin-right: 6px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-layout {
+    flex-direction: column;
+    height: auto;
+    overflow: auto;
+  }
+  .left-panel { height: 500px; }
+  .right-panel { width: 100%; padding-left: 10px; }
+  .map-box { min-height: 400px; }
+}
 </style>

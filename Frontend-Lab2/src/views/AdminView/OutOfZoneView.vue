@@ -171,8 +171,6 @@ onMounted(() => {
   min-height: 100vh;
   background-color: #F0F3E7;
   padding: 40px;
-  /* IMPORTANTE: Si tu HeaderAdmin es "fixed", deja este padding.
-     Si es "static" (se mueve con el scroll), puedes bajarlo a 20px o 0 */
   padding-top: 40px;
 }
 
@@ -332,13 +330,13 @@ onMounted(() => {
 }
 
 .map-icon {
-  font-size: 1.2em; /* Adjust as needed */
-  margin-left: 5px; /* Add some space from text */
+  font-size: 1.2em;
+  margin-left: 5px;
 }
 
 .refresh-icon {
-  font-size: 1.2em; /* Adjust as needed */
-  margin-right: 5px; /* Add some space from text */
+  font-size: 1.2em;
+  margin-right: 5px;
 }
 
 
