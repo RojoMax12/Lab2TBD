@@ -49,7 +49,7 @@ export default {
         return api.get(`/api/route/${routeId}`);
     },
 
-    findRouteByStatusAndIdDriver(IdDriver, status){ 
+    findRouteByStatusAndIdDriver(IdDriver, status){
         return api.get(`/api/route/status/${IdDriver}/${status}`);
     }
     ,
@@ -71,5 +71,10 @@ export default {
     // Obtener el path generado dinámicamente
     getGeneratedPath(routeId) {
         return api.get(`/api/route/${routeId}/path`);
+    },
+
+    // Obtener la distancia de la ruta
+    getRouteDistance(routeId) {
+        return api.get(`/api/route/${routeId}/kilometers`);
     }
 };

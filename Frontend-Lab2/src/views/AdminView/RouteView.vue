@@ -17,7 +17,7 @@
     <!-- ============================
           MODAL PLANIFICACIÓN
     ============================ -->
-    
+
     <div v-if="mostrarModal" class="modal-overlay" @click.self="cerrarModal">
       <div class="modal">
 
@@ -64,15 +64,15 @@
         <!-- CONTENEDORES -->
         <label class="label">Contenedores:</label>
         <div class="checkbox-list">
-          <label 
-            v-for="co in contenedores" 
-            :key="co.id" 
+          <label
+            v-for="co in contenedores"
+            :key="co.id"
             class="checkbox-item"
           >
-            <input 
-              type="checkbox" 
-              v-model="contenedoresSeleccionados" 
-              :value="co.id" 
+            <input
+              type="checkbox"
+              v-model="contenedoresSeleccionados"
+              :value="co.id"
             />
             <span>
               ID {{ co.id }} — {{ co.status }} — Central {{ co.id_central }}
@@ -184,8 +184,17 @@
     <div class="map-close-button-container">
       <button class="close-map-button" @click="cerrarMapa">Cerrar X</button>
     </div>
-    <div class="map-modal">
-      <div id="map" style="height: 100%; width: 100%;"></div>
+    <div class="map-and-info-container">
+      <div class="map-modal">
+        <div id="map" style="height: 100%; width: 100%;"></div>
+      </div>
+      <div class="route-info-box">
+        <h3>Detalles de la Ruta</h3>
+                <p class="info-item"><strong><FlFilledLocationArrowRight style="margin-right: 5px;" />Inicio: </strong>&nbsp; {{ infoRuta.startPoint }}</p>
+                <p class="info-item"><strong><FlFilledLocationArrowLeft style="margin-right: 5px;" />Fin: </strong>&nbsp; {{ infoRuta.endPoint }}</p>
+                <p class="info-item"><strong><ReTruckLine style="margin-right: 5px;" />Contenedores: </strong>&nbsp; {{ infoRuta.containerCount }}</p>
+                <p class="info-item"><strong><TaOutlineRoute style="margin-right: 5px;" />Kilómetros: </strong>&nbsp; {{ infoRuta.kilometers }} km</p>
+      </div>
     </div>
   </div>
 
@@ -206,6 +215,10 @@ import routeServices from '@/services/routeservices'
 import routeContainerServices from '@/services/route_containerservices'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { FlFilledLocationArrowRight } from '@kalimahapps/vue-icons';
+import { FlFilledLocationArrowLeft } from '@kalimahapps/vue-icons';
+import { ReTruckLine } from '@kalimahapps/vue-icons';
+import { TaOutlineRoute } from '@kalimahapps/vue-icons';
 
 
 /* MODAL */
@@ -252,7 +265,14 @@ const mostrarMapa = ref(false)
 let map = null
 let routeLayer = null
 
-// Definir íconos personalizados
+const infoRuta = ref({
+  startPoint: '',
+  endPoint: '',
+  containerCount: 0,
+  kilometers: 0
+});
+
+// íconos para el mapa
 const startIcon = L.icon({
     iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -281,7 +301,7 @@ const containerIcon = L.icon({
 });
 
 
-// La función initMap ya no es necesaria como una función separada; su lógica se integrará en verRuta
+// La lógica de la función initMap se integra en verRuta
 // function initMap() {
 //   map = L.map('map').setView([-33.45, -70.66], 12)
 
@@ -295,6 +315,7 @@ const containerIcon = L.icon({
 
 async function verRuta(ruta) {
   try {
+    // Obtener el path de la ruta
     const pathRes = await routeServices.getGeneratedPath(ruta.id);
     const pathWKT = pathRes.data;
 
@@ -308,6 +329,10 @@ async function verRuta(ruta) {
       alert('El path generado es inválido (menos de 2 puntos).');
       return;
     }
+
+    // Obtener la distancia en kilómetros
+    const distanceRes = await routeServices.getRouteDistance(ruta.id);
+    const kilometers = distanceRes.data ? distanceRes.data.toFixed(2) : 0;
 
     mostrarMapa.value = true;
 
@@ -326,24 +351,30 @@ async function verRuta(ruta) {
     const polyline = L.polyline(coords, { color: '#304BA6', weight: 5 }).addTo(routeLayer);
     map.fitBounds(polyline.getBounds());
 
-    // Marcador de inicio (primera central)
+    // Marcador de inicio (central de origen)
     const centralInicio = centrales.value.find(c => c.id === ruta.id_central);
     if (centralInicio) {
       const point = parseWKTPoint(centralInicio.location);
       L.marker([point.lat, point.lng], { icon: startIcon })
         .addTo(routeLayer)
         .bindPopup(`Inicio: ${centralInicio.name}`);
+      infoRuta.value.startPoint = centralInicio.name;
+    } else {
+      infoRuta.value.startPoint = 'Desconocido';
     }
 
-    // Marcador de fin (segunda central)
+    // Marcador de fin (central de destino)
     const centralFin = centrales.value.find(c => c.id === ruta.id_central_finish);
     if (centralFin) {
       const point = parseWKTPoint(centralFin.location);
       L.marker([point.lat, point.lng], { icon: endIcon })
         .addTo(routeLayer)
         .bindPopup(`Fin: ${centralFin.name}`);
+      infoRuta.value.endPoint = centralFin.name;
+    } else {
+      infoRuta.value.endPoint = 'Desconocido';
     }
-    
+
     // Marcadores para los contenedores
     const contenedoresDeRuta = contenedores.value.filter(c => ruta.contenedores.includes(c.id));
     contenedoresDeRuta.forEach(co => {
@@ -354,10 +385,12 @@ async function verRuta(ruta) {
           .bindPopup(`Contenedor ID: ${co.id}`);
       }
     });
+    infoRuta.value.containerCount = contenedoresDeRuta.length;
+    infoRuta.value.kilometers = kilometers;
 
   } catch (error) {
-    console.error("Error al obtener o procesar el path:", error);
-    alert("No se pudo mostrar la ruta completa.");
+    console.error("Error al obtener o procesar el trayecto o distancia:", error);
+    alert("No se pudo mostrar la ruta completa o su información.");
   }
 }
 
@@ -366,7 +399,7 @@ function eliminarRuta(id) {
     routeServices.deleteRoute(id)
       .then(() => {
         fetchRutas();         // Refresca la tabla de rutas
-        fetchContenedores();  // ¡Importante! Los contenedores liberados reaparecen aquí
+        fetchContenedores();
         alert("Ruta eliminada y contenedores liberados.");
       })
       .catch(err => console.error(err));
@@ -377,12 +410,12 @@ function cerrarModal() {
   mostrarModal.value = false
 }
 
-// Nueva función para cerrar el modal del mapa
+// función para cerrar el mapa
 function cerrarMapa() {
   mostrarMapa.value = false;
   if (map) {
-    map.remove(); // Destruye la instancia del mapa para liberar recursos y evitar problemas
-    map = null;   // Resetea la variable del mapa
+    map.remove();
+    map = null;
   }
 }
 
@@ -427,7 +460,7 @@ function guardarRuta() {
     idDriver: Number(nuevaRuta.value.id_driver),
     idCentral: Number(nuevaRuta.value.id_central),
     idCentralFinish: Number(nuevaRuta.value.id_central_end),
-    date: nuevaRuta.value.date, 
+    date: nuevaRuta.value.date,
     startTime: nuevaRuta.value.start_time,
     endTime: nuevaRuta.value.end_time
   };
@@ -437,7 +470,7 @@ function guardarRuta() {
       fetchRutas();
       fetchContenedores(); // Actualiza la disponibilidad
       alert('Ruta planificada exitosamente');
-      
+
       // LIMPIEZA DE ESTADO: Evita que queden IDs residuales
       contenedoresSeleccionados.value = [];
       mostrarModal.value = false;
@@ -563,7 +596,7 @@ async function fetchDrivers() {
 async function fetchContenedores() {
   try {
     const res = await containerServices.getAllContainers();
-    
+
     // 1. Obtener la lista base (manejo de casos Array o { data: Array })
     const allContenedores = Array.isArray(res) ? res : (res.data || []);
 
@@ -886,44 +919,44 @@ onMounted(() => {
   background-color: #4c553a;
 }
 
-/* Nuevos estilos para el modal del mapa */
+/* modal del mapa */
 .map-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6); /* Slightly darker overlay for map */
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(5px);
   display: flex;
-  flex-direction: column; /* Stack items vertically */
-  align-items: center; /* Align items back to center */
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  z-index: 3000; /* Higher z-index than other modals if any */
-  gap: 15px; /* Space between button and map modal */
+  z-index: 3000;
+  gap: 15px;
 }
 
 .map-modal {
   background: #fff;
   padding: 10px;
   border-radius: 12px;
-  width: 90%; /* Adjust as needed */
-  max-width: 1000px; /* Max width for the map */
-  height: 80%; /* Adjusted to leave space for button above */
-  max-height: 650px; /* Adjusted to leave space for button above */
+  width: 90%;
+  max-width: 1000px;
+  height: 80%;
+  max-height: 650px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   position: relative;
   animation: fadeIn 0.3s ease;
 }
 
 .close-map-button {
-  /* No longer absolute position relative to map-modal, but part of flex column */
+
   background: #d1655d;
   color: white;
   border: none;
-  border-radius: 25px; /* Pill shape */
-  padding: 10px 20px; /* Padding for text */
+  border-radius: 25px;
+  padding: 10px 20px;
   font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
-  z-index: 3001; /* Still high z-index */
+  z-index: 3001;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -936,11 +969,70 @@ onMounted(() => {
 }
 
 .map-close-button-container {
-  width: 90%; /* Match the width of .map-modal */
-  max-width: 1000px; /* Match the max-width of .map-modal */
+  width: 90%;
+  max-width: 1000px;
   display: flex;
-  justify-content: flex-end; /* Align button to the right */
-  /* padding-right: 10px; */ /* Optional: Add some padding if the button is too close to the edge */
+  justify-content: flex-end;
 }
+
+.map-and-info-container {
+  display: flex;
+  gap: 20px;
+  width: 90%;
+  max-width: 1200px;
+  height: 80%;
+  max-height: 650px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+
+.map-modal {
+  flex-grow: 1;
+  background: #fff;
+  padding: 10px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  position: relative;
+  animation: fadeIn 0.3s ease;
+  height: 100%;
+  max-width: 80%;
+}
+
+/* Estilos para el recuadro de información */
+.route-info-box {
+  background: #fff;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  width: 280px;
+  max-height: 100%;
+  overflow-y: auto;
+  animation: fadeIn 0.3s ease;
+}
+
+.route-info-box h3 {
+  color: #4a4f37;
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.route-info-box p {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.route-info-box strong {
+  color: #333;
+}
+
+.route-info-box .info-item {
+  display: flex;
+  align-items: center;
+}
+
 
 </style>
