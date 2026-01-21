@@ -40,11 +40,11 @@
         <a class="sidebar-link" @click="centrals()">● Centrales</a>
         <a class="sidebar-link" @click="rutas()">● Rutas</a>
         <a class="sidebar-link" @click="collectionzones()">● Zonas de Recolección</a>
+        <a class="sidebar-link" @click="outOfZone()">● Contenedores fuera de zona</a>
       </nav>
     </aside>
   </Transition>
-      <a class="sidebar-link" @click="outOfZone()">Contenedores fuera de zona</a>
-
+      
   <div v-if="showSidebar" class="sidebar-backdrop" @click="showSidebar = false"></div>
 </template>
 
@@ -148,6 +148,11 @@ function centrals() {
   showSidebar.value = false
   router.push({ name: 'centrals' })
 }
+
+function outOfZone() {
+  showSidebar.value = false; 
+  router.push({ name: 'outofzone' })
+} 
 
 </script>
 
