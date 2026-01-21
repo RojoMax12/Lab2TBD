@@ -4,47 +4,52 @@
 
       <!-- Botón menú -->
       <button class="menu-btn" @click="showSidebar = true" aria-label="Abrir menú">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <circle cx="14" cy="14" r="14" fill="#f7f7f7"/>
-          <rect x="7" y="12" width="14" height="2" rx="1" fill="#5f6949"/>
-          <rect x="7" y="16" width="14" height="2" rx="1" fill="#5f6949"/>
-          <rect x="7" y="8" width="14" height="2" rx="1" fill="#5f6949"/>
+        <svg width="36" height="36" viewBox="0 0 28 28" fill="none">
+          <rect x="7" y="12" width="14" height="2" rx="1" fill="white"/>
+          <rect x="7" y="16" width="14" height="2" rx="1" fill="white"/>
+          <rect x="7" y="8" width="14" height="2" rx="1" fill="white"/>
         </svg>
       </button>
 
-      <img src="/logo.png" alt="Admin" class="admin-avatar" />
-
-      <!-- Muestra nombre y apellido -->
-      <span class="admin-name">{{ fullName }}</span>
+      <img src="/cleanops.png" alt="Admin" class="admin-avatar" />
+      <span class="header-title">CleanOps</span>
     </div>
 
-    <button class="logout-btn" @click="cerrarSesion()">
-      Cerrar sesión
-    </button>
+    <div class="admin-right">
+      <BxSolidUserCircle class="user-circle-icon" />
+      <span class="admin-name">{{ fullName }}</span>
+      <button class="logout-btn" @click="cerrarSesion()" title="Cerrar Sesión">
+        <FlFilledArrowExit />
+      </button>
+    </div>
   </header>
 
   <!-- Sidebar -->
-  <aside class="sidebar" v-if="showSidebar">
-    <div class="sidebar-header">
-      <span class="sidebar-title">Menú</span>
-      <button class="close-btn" @click="showSidebar = false">&times;</button>
-    </div>
+  <Transition name="sidebar-slide">
+    <aside class="sidebar" v-if="showSidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">MENÚ</span>
+        <button class="close-btn" @click="showSidebar = false">&times;</button>
+      </div>
+      <div class="sidebar-divider"></div>
 
-    <nav class="sidebar-links">
-      <a class="sidebar-link" @click="home()">Inicio</a>
-      <a class="sidebar-link" @click="container()">Contenedores</a>
-      <a class="sidebar-link" @click="users()">Conductores</a>
-      <a class="sidebar-link" @click="admins()">Adminstradores</a>
-      <a class="sidebar-link" @click="centrals()">Centrales</a>
-      <a class="sidebar-link" @click="rutas()">Rutas</a>
-      <a class="sidebar-link" @click="collectionzones()">Zonas de Recolección</a>
-    </nav>
-  </aside>
+      <nav class="sidebar-links">
+        <a class="sidebar-link" @click="home()">● Inicio</a>
+        <a class="sidebar-link" @click="container()">● Contenedores</a>
+        <a class="sidebar-link" @click="users()">● Conductores</a>
+        <a class="sidebar-link" @click="admins()">● Adminstradores</a>
+        <a class="sidebar-link" @click="centrals()">● Centrales</a>
+        <a class="sidebar-link" @click="rutas()">● Rutas</a>
+        <a class="sidebar-link" @click="collectionzones()">● Zonas de Recolección</a>
+      </nav>
+    </aside>
+  </Transition>
 
   <div v-if="showSidebar" class="sidebar-backdrop" @click="showSidebar = false"></div>
 </template>
 
 <script setup>
+import { FlFilledArrowExit, BxSolidUserCircle } from '@kalimahapps/vue-icons';
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
@@ -89,7 +94,7 @@ async function getAdminData(email) {
 
         // Asegúrate de que la respuesta tenga los campos correctos
         const admin = response.data
-    
+
 
         name.value = admin.name
         lastname.value = admin.last_name
@@ -157,80 +162,92 @@ function collectionzones() {
 <style scoped>
 .admin-container {
   min-height: 100vh;
-  background-color: #f4e9da;
+  background-color: #F0F3E7;
   position: relative;
 }
 
 /* Header */
 .admin-header {
-  --bg-start: #6a704a;
-  --bg-end: #4e5336;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(180deg, var(--bg-start), var(--bg-end));
+  background-color: #32533D;
   color: white;
-  padding: 0.75rem 1.25rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  /* Make admin header fixed so it stays visible while scrolling */
+  padding: 0rem 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   position: static;
   top: 0;
   left: 0;
   right: 0;
   width: 100%;
   z-index: 1100;
-  backdrop-filter: blur(4px);
 }
 
 .admin-left {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .menu-btn {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0.2rem;
-  border-radius: 50%;
-  transition: background 0.18s;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background 0.2s ease;
   display: flex;
   align-items: center;
 }
 .menu-btn:hover {
-  background: #eaeaea;
+  background: rgba(255, 255, 255, 0.1);
+}
+.admin-avatar {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
 }
 
-.admin-avatar {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.10);
+.header-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-left: -0.5rem;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .admin-name {
   color: white;
-  font-weight: bold;
-  font-size: 1.2rem;
+  font-weight: 500;
+  font-size: 1.1rem;
+  margin-left: -0.5rem;
+}
+
+.admin-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-circle-icon {
+  font-size: 2rem;
+  color: white;
 }
 
 .logout-btn {
-  background: linear-gradient(180deg,#ffffff,#f3f3f3);
-  color: #5e6541;
-  padding: 0.5rem 1.5rem;
-  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
-  font-weight: 800;
-  box-shadow: 0 2px 6px rgba(94,101,65,0.14);
-  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
-  font-size: 15px;
+  transition: background 0.2s ease;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .logout-btn:hover {
-    transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(94,101,65,0.18);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .logout-btn:focus {
@@ -245,19 +262,31 @@ function collectionzones() {
   left: 0;
   width: 240px;
   height: 100vh;
-  background: linear-gradient(180deg, #5f6949, #4c553a);
+  background: linear-gradient(180deg, #32533D, #3E5C44);
   color: #fff;
   box-shadow: 2px 0 16px rgba(0,0,0,0.13);
   z-index: 1001;
   display: flex;
   flex-direction: column;
   padding: 2rem 1.2rem 1.2rem 1.2rem;
-  animation: slideInSidebarLeft 0.2s;
+}
+
+.sidebar-slide-enter-active {
+  animation: slideInSidebarLeft 0.3s ease-out;
+}
+
+.sidebar-slide-leave-active {
+  animation: slideOutSidebarLeft 0.3s ease-in;
 }
 
 @keyframes slideInSidebarLeft {
-  from { left: -260px; opacity: 0; }
-  to { left: 0; opacity: 1; }
+  from { left: -260px; }
+  to { left: 0; }
+}
+
+@keyframes slideOutSidebarLeft {
+  from { left: 0; }
+  to { left: -260px; }
 }
 
 .sidebar-header {
@@ -265,10 +294,11 @@ function collectionzones() {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  cursor: default;
 }
 
 .sidebar-title {
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   font-weight: 700;
 }
 
@@ -295,10 +325,18 @@ function collectionzones() {
   padding: 0.6rem 1rem;
   border-radius: 8px;
   transition: background 0.18s;
+  cursor: pointer;
 }
 
 .sidebar-link:hover {
   background: rgba(255,255,255,0.12);
+}
+
+.sidebar-divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.15);
+  margin: 1.5rem 0;
+  width: 100%;
 }
 
 .sidebar-backdrop {
@@ -331,7 +369,7 @@ function collectionzones() {
 }
 
 .admin-box {
-  background-color: #5f6949;
+  background-color: #4C7840;
   border-radius: 20px;
   width: 100%;
   height: 350px;
@@ -345,7 +383,7 @@ function collectionzones() {
 }
 
 .admin-circle {
-  background-color: #5f6949;
+  background-color: #4C7840;
   border-radius: 50%;
   width: 350px;
   height: 350px;
@@ -354,7 +392,7 @@ function collectionzones() {
 
 .calculate-btn {
   margin-top: 1.5rem;
-  background-color: #5f6949;
+  background-color: #4C7840;
   color: white;
   padding: 0.75rem 1.5rem;
   border-radius: 25px;
@@ -364,7 +402,7 @@ function collectionzones() {
   transition: background 0.3s ease;
 }
 .calculate-btn:hover {
-  background-color: #4c553a;
+  background-color: #3E5C44;
 }
 
 @media (max-width: 900px) {

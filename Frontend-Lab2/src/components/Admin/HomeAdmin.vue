@@ -9,9 +9,9 @@
 
     <!-- Contenido -->
     <main class="admin-main">
-      <h1 class="admin-title">Panel de administración</h1>
+      <h1 class="admin-title" style="font-size: 28px;">PANEL DE ADMINISTRACIÓN</h1>
       <div class="efficiency-section">
-        <h2 class="admin-title">Últimos 6 meses</h2>
+        <h2 class="admin-title">Últimos 6 Meses</h2>
         <button class="calculate-btn" @click="calculateEfficiency">
           Calcular eficiencia
         </button>
@@ -36,7 +36,7 @@
       </div>
 
       <div class="waste-performance">
-        <h2 class="admin-title">Desempeño de residuos recogidos</h2>
+        <h2 class="admin-title">Desempeño de Residuos Recogidos</h2>
         <button class="calculate-btn" @click="fetchWastePerformance">
           Obtener desempeño
         </button>
@@ -106,16 +106,16 @@ function fetchWastePerformance() {
 /* General page styles */
 .admin-container {
   min-height: auto;
-  background-color: #f4e9da;
+  background-color: #F0F3E7;
   padding: 20px;
 }
 
 /* Main title */
 .admin-title {
   text-align: center;
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: bold;
-  color: #4a4f37;
+  color: #3E5C44;
   margin-bottom: 25px;
 }
 
@@ -134,7 +134,7 @@ function fetchWastePerformance() {
 /* Button style */
 .calculate-btn {
   margin-top: 20px;
-  background-color: #5f6949;
+  background-color: #4C7840;
   color: white;
   padding: 10px 20px;
   border-radius: 25px;
@@ -149,7 +149,7 @@ function fetchWastePerformance() {
 }
 
 .calculate-btn:hover {
-  background-color: #4c553a;
+  background-color: #3E5C44;
 }
 
 /* Table styling */
@@ -173,7 +173,7 @@ function fetchWastePerformance() {
 .grid-header {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr ; /* Five equally spaced columns */
-  background: #5f6949;
+  background: #3E5C44;
   color: white;
   padding: 12px 16px;
   font-weight: bold;
@@ -194,7 +194,7 @@ function fetchWastePerformance() {
 .grid-header-waste {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr ; /* Five equally spaced columns */
-  background: #5f6949;
+  background: #3E5C44;
   color: white;
   padding: 12px 16px;
   font-weight: bold;

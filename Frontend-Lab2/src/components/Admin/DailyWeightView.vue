@@ -65,7 +65,7 @@ onMounted(() => {
   text-align: center;
   font-size: 1.5rem;
   font-weight: bold;
-  color: #4a4f37;
+  color: #3E5C44;
   margin-bottom: 20px;
 }
 
@@ -83,7 +83,7 @@ onMounted(() => {
 .grid-header-weights {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  background: #5f6949;
+  background: #3E5C44;
   color: white;
   padding: 12px 16px;
   font-weight: bold;

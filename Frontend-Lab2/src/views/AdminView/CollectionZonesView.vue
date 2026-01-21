@@ -4,7 +4,9 @@
 
     <div class="container-routes collection-zones-view">
       <h1 class="title">Zonas de Recolección</h1>
-      <div id="map-zones" style="height: 800px; width: 80%; max-width: 1000px; margin: 0 auto; border: 1px solid #ccc; border-radius: 10px;"></div>
+      <div class="map-box">
+        <div id="map-zones" style="height: 100%; width: 100%;"></div>
+      </div>
     </div>
 
     <div class="funcionalidades">
@@ -289,6 +291,9 @@ function finishDrawing() {
 onMounted(async () => {
   await nextTick()
   initMap()
+  if (map) { // Ensure map is initialized before invalidating size
+    map.invalidateSize();
+  }
   try {
     const [zonesRes, containersRes] = await Promise.all([
       collectionZoneServices.getAllCollectionZones(),
@@ -323,6 +328,18 @@ onMounted(async () => {
   margin-bottom: 1rem;
   color: #333;
   text-align: center; 
+}
+
+.map-box {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 80%; /* From original inline style */
+  max-width: 1000px; /* From original inline style */
+  margin: 0 auto; /* From original inline style */
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1); /* Subtle shadow */
+  border: 1px solid #ccc; /* Optional, from original inline style */
+  height: 800px; /* Explicit height for the box itself */
 }
 .funcionalidades {
   padding: 1.25rem;
