@@ -8,7 +8,7 @@
           <h1 class="hero-title">¿Quiénes somos?</h1>
           <p class="hero-subtitle">
             En <strong>CleanOps</strong>, trabajamos para ofrecer soluciones eficientes para la
-            recolección de basura, optimizando la gestión de conductores, rutas y contenedores. 
+            recolección de basura, optimizando la gestión de conductores, rutas y contenedores.
             Nuestro objetivo es mejorar la productividad y eficiencia de las empresas encargadas de la recolección de residuos.
           </p>
         </div>
@@ -90,7 +90,7 @@ import Footer from '@/components/Home/Footer.vue'
 }
 
 .hero-section {
-  background: linear-gradient(180deg, #4e5336, #3f4732);
+  background: linear-gradient(180deg, #4C7840, #3E5C44, #32533D);
   padding: 80px 20px 100px;
   text-align: center;
   color: #ffffff;

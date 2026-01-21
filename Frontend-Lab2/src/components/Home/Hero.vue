@@ -6,7 +6,7 @@
       </figure>
 
       <div class="hero-body">
-        <h1 id="hero-title">Recolección eficiente y sostenible</h1>
+        <h1 id="hero-title"><CaSustainability class="hero-title-icon" /> Recolección eficiente y sostenible</h1>
         <p class="hero-text">
           “Una recolección de residuos más ágil y eficiente significa ciudades más limpias,
           menos impacto ambiental y un mejor aprovechamiento de los recursos. Así,
@@ -17,6 +17,16 @@
     </div>
   </section>
 </template>
+
+<script>
+import { CaSustainability } from '@kalimahapps/vue-icons';
+
+export default {
+  components: {
+    CaSustainability
+  }
+}
+</script>
 
 <style scoped>
 :root {
@@ -43,7 +53,7 @@
   grid-template-columns: 420px 1fr;
   gap: 36px;
   align-items: center;
-  background: linear-gradient(180deg, #4e5336, #3f4732);
+  background: linear-gradient(180deg, #3E5C44, #32533D);
   padding: 28px;
   border-radius: 12px;
   box-shadow: var(--shadow);
@@ -80,6 +90,13 @@
   line-height: 1.7;
   text-align: left;
   font-weight: 500;
+}
+
+.hero-title-icon {
+  font-size: 1.2em;
+  vertical-align: middle;
+  margin-right: 8px;
+  color: #ffffff;
 }
 
 /* Ajustes para pantallas pequeñas */

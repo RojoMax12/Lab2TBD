@@ -81,29 +81,32 @@ function submitForm() {
 .contact-hero {
   text-align: center;
   margin-bottom: 0.1rem;
-  background: linear-gradient(180deg, var(--green-start), var(--green-end)); /* Fondo verde */
-  padding: 4rem 2rem;
+  background: linear-gradient(180deg, #4C7840, #3E5C44);
+  padding: 3rem 2rem;
   border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
 .contact-title {
-  font-size: 2.8rem;
+  font-size: 3.2rem;
   font-weight: 700;
-  color: black; /* Texto blanco */
+  color: white;
   margin-bottom: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .contact-subtitle {
-  font-size: 1.2rem;
-  color: black; /* Texto blanco */
-  max-width: 750px;
+  font-size: 1.1rem;
+  color: white;
+  max-width: 800px;
   margin: 0 auto;
   line-height: 1.6;
   opacity: 0.9;
 }
 
 .contact-form-section {
-  background-color: #4e5336;
+  background-color: #3E5C44;
   padding: 3rem 2rem;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -125,15 +128,16 @@ function submitForm() {
   width: 100%;
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid #000000;
+  border: 1px solid #ccc;
   font-size: 1rem;
   background-color: #fff;
-  transition: border 0.3s ease;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .form-input:focus {
-  border-color: var(--green-start);  /* Borde verde en el foco */
+  border-color: #4C7840;
   outline: none;
+  box-shadow: 0 0 0 3px rgba(76, 120, 64, 0.2);
 }
 
 textarea.form-input {
@@ -141,8 +145,8 @@ textarea.form-input {
 }
 
 .submit-btn {
-  background-color: white;  /* Botón verde */
-  color: #6a704a;  /* Texto blanco */
+  background-color: #4C7840;
+  color: white;
   padding: 1rem 2rem;
   border-radius: 50px;
   border: none;
@@ -151,11 +155,11 @@ textarea.form-input {
   width: 100%;
   transition: background-color 0.3s ease, transform 0.3s ease;
   font-weight: 700;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 10px rgba(76, 120, 64, 0.2);
 }
 
 .submit-btn:hover {
-  background-color: var(--green-end);  /* Fondo verde claro en hover */
+  background-color: #3e442c;
   transform: translateY(-2px);
 }
 

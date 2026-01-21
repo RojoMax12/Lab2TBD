@@ -59,6 +59,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-bottom: 40px;
 }
 
 .section-title {

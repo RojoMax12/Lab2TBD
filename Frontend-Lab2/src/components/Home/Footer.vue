@@ -42,16 +42,12 @@ function whoweare () {
 
 <style scoped>
 .footer {
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  z-index: 60;
-  background: linear-gradient(180deg, #50593f, #3f4732);
+  background: linear-gradient(180deg, #3E5C44, #32533D);
   color: rgba(255,255,255,0.95);
   padding: 12px 16px;
   box-shadow: 0 -4px 12px rgba(0,0,0,0.12);
   border-top: 1px solid rgba(255,255,255,0.04);
+  margin-top: auto;
 }
 
 .footer-inner {
@@ -80,9 +76,9 @@ function whoweare () {
 }
 .link:hover,
 .link:focus {
-  background: rgba(255,255,255,0.03);
-  color: #dcd6c8;
-  transform: translateY(-2px);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  transform: translateY(-1px);
 }
 
 .sep {

@@ -26,7 +26,6 @@ html, body {
   background-color: #F0F3E7;
   margin: 0;
   padding: 0;
-  padding-bottom: 80px; /* espacio abajo */
 }
 
 /* Quitamos el max-width y el margin-top que limitaba la vista */

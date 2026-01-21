@@ -48,7 +48,7 @@
   gap: 36px;
   align-items: center;
 
-  background: linear-gradient(180deg, #4e5336, #3f4732);
+  background: linear-gradient(180deg, #3E5C44, #32533D);
   padding: 28px;
   border-radius: 12px;
   box-shadow: var(--shadow);
@@ -63,8 +63,8 @@
   object-fit: cover;
 
   border-radius: 10px;
-  border: 3px solid rgba(78,83,54,0.12);
-  box-shadow: 0 8px 20px rgba(78,83,54,0.06);
+  border: 3px solid rgba(50, 83, 61, 0.12);
+  box-shadow: 0 8px 20px rgba(50, 83, 61, 0.06);
 }
 
 /* TEXTO */
@@ -93,15 +93,15 @@
 /* BOTÓN */
 .actions .btn {
   display: inline-block;
-  background: linear-gradient(180deg, #5e6541, #52563f);
+  background-color: #4C7840;
   color: #fff;
   padding: 0.65rem 1.1rem;
   border-radius: 999px;
   text-decoration: none;
   font-weight: 600;
 
-  box-shadow: 0 8px 18px rgba(78,83,54,0.12);
-  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 18px rgba(76, 120, 64, 0.12);
+  border: none;
   transition: transform 0.2s ease;
 }
 

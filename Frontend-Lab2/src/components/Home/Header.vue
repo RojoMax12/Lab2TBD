@@ -2,7 +2,7 @@
   <header class="header" role="banner">
     <div class="left">
       <div class="logo-container">
-        <img src="/logoact.png" alt="Logo Trash TBD" class="logo" />
+        <img src="/cleanops.png" alt="Logo Trash TBD" class="logo" />
         <h1 class="site-title">CleanOps</h1>
       </div>
 
@@ -59,8 +59,8 @@ function Contact() {
 
 <style scoped>
 .header {
-  --bg-start: #6a704a;
-  --bg-end: #4e5336;
+  --bg-start: #32533D; /* Dark green from AdminHeader */
+  --bg-end: #32533D;   /* Solid dark green */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -71,7 +71,7 @@ function Contact() {
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1100; /* Increased z-index */
   backdrop-filter: blur(4px);
 }
 
@@ -88,9 +88,9 @@ function Contact() {
 }
 
 .logo {
-  width: 80px;
-  height: 60px;
-  object-fit: cover;
+  width: 60px;
+  height: 45px;
+  object-fit: contain;
   border-radius: 10px;
 }
 
@@ -130,21 +130,21 @@ function Contact() {
 }
 
 .login-btn {
-  background: linear-gradient(180deg,#ffffff,#f3f3f3);
-  color: #5e6541;
+  background-color: #4C7840; /* Solid green from theme */
+  color: white;
   padding: 0.5rem 1.5rem;
   border-radius: 999px;
   border: none;
   cursor: pointer;
   font-weight: 800;
-  box-shadow: 0 2px 6px rgba(94,101,65,0.14);
+  box-shadow: 0 2px 6px rgba(76, 120, 64, 0.2); /* Themed shadow */
   transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
   font-size: 15px;
 }
 
 .login-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(94,101,65,0.18);
+  box-shadow: 0 8px 18px rgba(76, 120, 64, 0.3); /* Themed shadow on hover */
 }
 
 .login-btn:focus {

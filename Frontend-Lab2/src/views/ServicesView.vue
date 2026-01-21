@@ -118,7 +118,7 @@ import {
 }
 
 .hero-section {
-  background: linear-gradient(180deg, #4e5336, #3f4732);
+  background: linear-gradient(180deg, #4C7840, #3E5C44, #32533D);
   padding: 80px 20px 100px;
   text-align: center;
   color: #ffffff;
